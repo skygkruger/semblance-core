@@ -1,7 +1,5 @@
 // TabNavigator — Bottom tab navigation with per-tab stack navigators.
-// 5 tabs: Chat, Brief, Knowledge, Dashboards, Settings.
-// Each tab has its own NativeStack for detail screen navigation.
-// All screens from desktop are reachable — secondary screens nest in Settings stack.
+// 6 sovereign tabs: Today, Ask, Work, Vault, Proof, Capabilities.
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, Text, Pressable, ActivityIndicator, Platform, Alert } from 'react-native';
@@ -15,12 +13,14 @@ import { useFeatureAuth } from '@semblance/ui';
 import { colors, typography, spacing } from '../theme/tokens.js';
 import type {
   TabParamList,
-  ChatStackParamList,
-  BriefStackParamList,
-  KnowledgeStackParamList,
-  DashboardsStackParamList,
-  SettingsStackParamList,
+  TodayStackParamList,
+  AskStackParamList,
+  WorkStackParamList,
+  VaultStackParamList,
+  ProofStackParamList,
+  CapabilitiesStackParamList,
 } from './types.js';
+import { TAB_LABELS as TAB_LABEL_MAP } from './types.js';
 
 // Runtime
 import { getRuntimeState } from '../runtime/mobile-runtime.js';
@@ -140,38 +140,107 @@ function getShareAdapter() {
 
 // ─── Stack Navigators ──────────────────────────────────────────────────────
 
-const ChatStack = createNativeStackNavigator<ChatStackParamList>();
-const BriefStack = createNativeStackNavigator<BriefStackParamList>();
-const KnowledgeStack = createNativeStackNavigator<KnowledgeStackParamList>();
-const DashboardsStack = createNativeStackNavigator<DashboardsStackParamList>();
-const SettingsNavStack = createNativeStackNavigator<SettingsStackParamList>();
+const TodayStack = createNativeStackNavigator<TodayStackParamList>();
+const AskStack = createNativeStackNavigator<AskStackParamList>();
+const WorkStack = createNativeStackNavigator<WorkStackParamList>();
+const VaultStack = createNativeStackNavigator<VaultStackParamList>();
+const ProofStack = createNativeStackNavigator<ProofStackParamList>();
+const CapabilitiesStack = createNativeStackNavigator<CapabilitiesStackParamList>();
 
 const stackScreenOptions = {
   headerShown: false as const,
   contentStyle: { backgroundColor: colors.bgDark },
 };
 
-// ─── Chat Tab Stack ────────────────────────────────────────────────────────
+// ─── Sovereign Tab Stacks ──────────────────────────────────────────────────
 
-function ChatTabStack() {
+function TodayTabStack() {
   return (
-    <ChatStack.Navigator screenOptions={stackScreenOptions}>
-      <ChatStack.Screen name="Chat" component={ChatScreen} />
-    </ChatStack.Navigator>
+    <TodayStack.Navigator screenOptions={stackScreenOptions}>
+      <TodayStack.Screen name="Today" component={BriefScreen} />
+      <TodayStack.Screen name="Brief" component={BriefScreen} />
+      <TodayStack.Screen name="Digest" component={DigestScreen} />
+    </TodayStack.Navigator>
   );
 }
 
-// ─── Brief Tab Stack ───────────────────────────────────────────────────────
-
-function BriefTabStack() {
+function AskTabStack() {
   return (
-    <BriefStack.Navigator screenOptions={stackScreenOptions}>
-      <BriefStack.Screen name="Brief" component={BriefScreen} />
-    </BriefStack.Navigator>
+    <AskStack.Navigator screenOptions={stackScreenOptions}>
+      <AskStack.Screen name="Ask" component={ChatScreen} />
+    </AskStack.Navigator>
   );
 }
 
-// ─── Knowledge Tab Stack ───────────────────────────────────────────────────
+function WorkTabStack() {
+  return (
+    <WorkStack.Navigator screenOptions={stackScreenOptions}>
+      <WorkStack.Screen name="Work" component={ActivityScreen} />
+      <WorkStack.Screen name="Activity" component={ActivityScreen} />
+      <WorkStack.Screen name="Intent" component={IntentScreen} />
+    </WorkStack.Navigator>
+  );
+}
+
+function VaultTabStack() {
+  return (
+    <VaultStack.Navigator screenOptions={stackScreenOptions}>
+      <VaultStack.Screen name="Vault" component={FilesScreen} />
+      <VaultStack.Screen name="Files" component={FilesScreen} />
+      <VaultStack.Screen name="ImportDigitalLife" component={ImportDigitalLifeScreen} />
+    </VaultStack.Navigator>
+  );
+}
+
+function ProofTabStack() {
+  return (
+    <ProofStack.Navigator screenOptions={stackScreenOptions}>
+      <ProofStack.Screen name="Proof" component={ProofOfPrivacyScreenWrapper} />
+      <ProofStack.Screen name="ProofOfPrivacy" component={ProofOfPrivacyScreenWrapper} />
+      <ProofStack.Screen name="SovereigntyReport" component={SovereigntyReportScreen} />
+    </ProofStack.Navigator>
+  );
+}
+
+function CapabilitiesTabStack() {
+  return (
+    <CapabilitiesStack.Navigator screenOptions={stackScreenOptions}>
+      <CapabilitiesStack.Screen name="Capabilities" component={ConnectionsScreen} />
+      <CapabilitiesStack.Screen name="Connections" component={ConnectionsScreen} />
+      <CapabilitiesStack.Screen name="Skills" component={SkillsScreenMobile} />
+      <CapabilitiesStack.Screen name="SettingsRoot" component={SettingsScreen} />
+      <CapabilitiesStack.Screen name="VoiceSettings" component={VoiceSettingsScreen} />
+      <CapabilitiesStack.Screen name="CloudStorageSettings" component={CloudStorageSettingsScreen} />
+      <CapabilitiesStack.Screen name="Capture" component={CaptureScreen} />
+      <CapabilitiesStack.Screen name="Contacts" component={ContactsScreen} />
+      <CapabilitiesStack.Screen name="ContactDetail" component={ContactDetailScreen} />
+      <CapabilitiesStack.Screen name="LocationSettings" component={LocationSettingsScreenWrapper} />
+      <CapabilitiesStack.Screen name="SearchSettings" component={SearchSettingsScreenWrapper} />
+      <CapabilitiesStack.Screen name="FinancialDashboard" component={FinancialDashboardScreenWrapper} />
+      <CapabilitiesStack.Screen name="HealthDashboard" component={HealthDashboardScreenWrapper} />
+      <CapabilitiesStack.Screen name="PrivacyDashboard" component={PrivacyDashboardScreenWrapper} />
+      <CapabilitiesStack.Screen name="LivingWill" component={LivingWillScreenWrapper} />
+      <CapabilitiesStack.Screen name="Witness" component={WitnessScreenWrapper} />
+      <CapabilitiesStack.Screen name="Inheritance" component={InheritanceScreenWrapper} />
+      <CapabilitiesStack.Screen name="InheritanceActivation" component={InheritanceActivationScreenWrapper} />
+      <CapabilitiesStack.Screen name="Network" component={NetworkScreenWrapper} />
+      <CapabilitiesStack.Screen name="BiometricSetup" component={BiometricSetupScreenWrapper} />
+      <CapabilitiesStack.Screen name="Backup" component={BackupScreenWrapper} />
+      <CapabilitiesStack.Screen name="AdversarialDashboard" component={AdversarialDashboardScreenWrapper} />
+      <CapabilitiesStack.Screen name="AlterEgoWeek" component={AlterEgoWeekScreenWrapper} />
+      <CapabilitiesStack.Screen name="TunnelPairing" component={TunnelPairingScreenMobile} />
+      <CapabilitiesStack.Screen name="Channels" component={ChannelsScreenMobile} />
+      <CapabilitiesStack.Screen name="Sessions" component={SessionsScreenMobile} />
+      <CapabilitiesStack.Screen name="LearnedPreferences" component={LearnedPreferencesScreenMobile} />
+      <CapabilitiesStack.Screen name="BinaryAllowlist" component={BinaryAllowlistScreenMobile} />
+      <CapabilitiesStack.Screen name="KnowledgeGraph" component={KnowledgeGraphScreenWrapper} />
+      <CapabilitiesStack.Screen name="NetworkMonitor" component={NetworkMonitorScreen} />
+      <CapabilitiesStack.Screen name="Relationships" component={RelationshipsScreen} />
+    </CapabilitiesStack.Navigator>
+  );
+}
+
+// ─── Knowledge Graph Wrapper ───────────────────────────────────────────────
 
 function KnowledgeGraphScreenWrapper() {
   const { t } = useTranslation();
@@ -216,15 +285,6 @@ function KnowledgeGraphScreenWrapper() {
   }
 
   return <KnowledgeGraphScreen graph={data!.graph} />;
-}
-
-function KnowledgeTabStack() {
-  return (
-    <KnowledgeStack.Navigator screenOptions={stackScreenOptions}>
-      <KnowledgeStack.Screen name="KnowledgeGraph" component={KnowledgeGraphScreenWrapper} />
-      <KnowledgeStack.Screen name="ImportDigitalLife" component={ImportDigitalLifeScreen} />
-    </KnowledgeStack.Navigator>
-  );
 }
 
 // ─── Screen Wrappers (for screens requiring injected props) ──────────────
@@ -1356,71 +1416,6 @@ function SearchSettingsScreenWrapper() {
   );
 }
 
-// ─── Dashboards Tab Stack (NEW) ────────────────────────────────────────────
-
-function DashboardsTabStack() {
-  return (
-    <DashboardsStack.Navigator screenOptions={stackScreenOptions}>
-      <DashboardsStack.Screen name="DashboardHub" component={DashboardHubScreen} />
-      <DashboardsStack.Screen name="Inbox" component={InboxScreen} />
-      <DashboardsStack.Screen name="FinancialDashboard" component={FinancialDashboardScreenWrapper} />
-      <DashboardsStack.Screen name="HealthDashboard" component={HealthDashboardScreenWrapper} />
-      <DashboardsStack.Screen name="Contacts" component={ContactsScreen} />
-      <DashboardsStack.Screen name="ContactDetail" component={ContactDetailScreen} />
-      <DashboardsStack.Screen name="Activity" component={ActivityScreen} />
-      <DashboardsStack.Screen name="Digest" component={DigestScreen} />
-      <DashboardsStack.Screen name="Relationships" component={RelationshipsScreen} />
-      <DashboardsStack.Screen name="SovereigntyReport" component={SovereigntyReportScreen} />
-      <DashboardsStack.Screen name="NetworkMonitor" component={NetworkMonitorScreen} />
-    </DashboardsStack.Navigator>
-  );
-}
-
-// ─── Settings Tab Stack ────────────────────────────────────────────────────
-
-function SettingsTabStack() {
-  return (
-    <SettingsNavStack.Navigator screenOptions={stackScreenOptions}>
-      <SettingsNavStack.Screen name="SettingsRoot" component={SettingsScreen} />
-      <SettingsNavStack.Screen name="VoiceSettings" component={VoiceSettingsScreen} />
-      <SettingsNavStack.Screen name="CloudStorageSettings" component={CloudStorageSettingsScreen} />
-      <SettingsNavStack.Screen name="Capture" component={CaptureScreen} />
-      <SettingsNavStack.Screen name="ImportDigitalLife" component={ImportDigitalLifeScreen} />
-      <SettingsNavStack.Screen name="Contacts" component={ContactsScreen} />
-      <SettingsNavStack.Screen name="ContactDetail" component={ContactDetailScreen} />
-      <SettingsNavStack.Screen name="LocationSettings" component={LocationSettingsScreenWrapper} />
-      <SettingsNavStack.Screen name="SearchSettings" component={SearchSettingsScreenWrapper} />
-      <SettingsNavStack.Screen name="FinancialDashboard" component={FinancialDashboardScreenWrapper} />
-      <SettingsNavStack.Screen name="HealthDashboard" component={HealthDashboardScreenWrapper} />
-      <SettingsNavStack.Screen name="PrivacyDashboard" component={PrivacyDashboardScreenWrapper} />
-      <SettingsNavStack.Screen name="ProofOfPrivacy" component={ProofOfPrivacyScreenWrapper} />
-      <SettingsNavStack.Screen name="LivingWill" component={LivingWillScreenWrapper} />
-      <SettingsNavStack.Screen name="Witness" component={WitnessScreenWrapper} />
-      <SettingsNavStack.Screen name="Inheritance" component={InheritanceScreenWrapper} />
-      <SettingsNavStack.Screen name="InheritanceActivation" component={InheritanceActivationScreenWrapper} />
-      <SettingsNavStack.Screen name="Network" component={NetworkScreenWrapper} />
-      <SettingsNavStack.Screen name="BiometricSetup" component={BiometricSetupScreenWrapper} />
-      <SettingsNavStack.Screen name="Backup" component={BackupScreenWrapper} />
-      <SettingsNavStack.Screen name="AdversarialDashboard" component={AdversarialDashboardScreenWrapper} />
-      <SettingsNavStack.Screen name="AlterEgoWeek" component={AlterEgoWeekScreenWrapper} />
-      <SettingsNavStack.Screen name="Connections" component={ConnectionsScreen} />
-      <SettingsNavStack.Screen name="Files" component={FilesScreen} />
-      <SettingsNavStack.Screen name="Activity" component={ActivityScreen} />
-      <SettingsNavStack.Screen name="Intent" component={IntentScreen} />
-      <SettingsNavStack.Screen name="Digest" component={DigestScreen} />
-      <SettingsNavStack.Screen name="NetworkMonitor" component={NetworkMonitorScreen} />
-      <SettingsNavStack.Screen name="Relationships" component={RelationshipsScreen} />
-      <SettingsNavStack.Screen name="SovereigntyReport" component={SovereigntyReportScreen} />
-      <SettingsNavStack.Screen name="TunnelPairing" component={TunnelPairingScreenMobile} />
-      <SettingsNavStack.Screen name="Channels" component={ChannelsScreenMobile} />
-      <SettingsNavStack.Screen name="Sessions" component={SessionsScreenMobile} />
-      <SettingsNavStack.Screen name="LearnedPreferences" component={LearnedPreferencesScreenMobile} />
-      <SettingsNavStack.Screen name="Skills" component={SkillsScreenMobile} />
-      <SettingsNavStack.Screen name="BinaryAllowlist" component={BinaryAllowlistScreenMobile} />
-    </SettingsNavStack.Navigator>
-  );
-}
-
 // ─── Bottom Tab Navigator ──────────────────────────────────────────────────
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -1429,14 +1424,7 @@ const Tab = createBottomTabNavigator<TabParamList>();
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
-  // Tab display names
-  const TAB_LABELS: Record<string, string> = {
-    ChatTab: 'Chat',
-    BriefTab: 'Brief',
-    KnowledgeTab: 'Knowledge',
-    DashboardsTab: 'Dashboards',
-    SettingsTab: 'Settings',
-  };
+  const TAB_LABELS = TAB_LABEL_MAP;
 
   return (
     <View style={[tabStyles.tabBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
@@ -1483,30 +1471,15 @@ export function MainTabNavigator() {
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
+      <Tab.Screen name="TodayTab" component={TodayTabStack} options={{ tabBarLabel: TAB_LABELS.TodayTab }} />
+      <Tab.Screen name="AskTab" component={AskTabStack} options={{ tabBarLabel: TAB_LABELS.AskTab }} />
+      <Tab.Screen name="WorkTab" component={WorkTabStack} options={{ tabBarLabel: TAB_LABELS.WorkTab }} />
+      <Tab.Screen name="VaultTab" component={VaultTabStack} options={{ tabBarLabel: TAB_LABELS.VaultTab }} />
+      <Tab.Screen name="ProofTab" component={ProofTabStack} options={{ tabBarLabel: TAB_LABELS.ProofTab }} />
       <Tab.Screen
-        name="ChatTab"
-        component={ChatTabStack}
-        options={{ tabBarLabel: 'Chat' }}
-      />
-      <Tab.Screen
-        name="BriefTab"
-        component={BriefTabStack}
-        options={{ tabBarLabel: 'Brief' }}
-      />
-      <Tab.Screen
-        name="KnowledgeTab"
-        component={KnowledgeTabStack}
-        options={{ tabBarLabel: 'Knowledge' }}
-      />
-      <Tab.Screen
-        name="DashboardsTab"
-        component={DashboardsTabStack}
-        options={{ tabBarLabel: 'Dashboards' }}
-      />
-      <Tab.Screen
-        name="SettingsTab"
-        component={SettingsTabStack}
-        options={{ tabBarLabel: 'Settings' }}
+        name="CapabilitiesTab"
+        component={CapabilitiesTabStack}
+        options={{ tabBarLabel: TAB_LABELS.CapabilitiesTab }}
       />
     </Tab.Navigator>
   );

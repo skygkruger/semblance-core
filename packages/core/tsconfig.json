@@ -13,14 +13,20 @@
     "declarationMap": true,
     "sourceMap": true,
     "noUncheckedIndexedAccess": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": "..",
+    "paths": {
+      "@semblance/sync": ["sync/src/index.ts"],
+      "@semblance/sync/*": ["sync/src/*"]
+    }
   },
   "include": ["llm/**/*.ts", "knowledge/**/*.ts", "agent/**/*.ts", "types/**/*.ts", "extensions/**/*.ts", "skills/**/*.ts", "security/**/*.ts", "credentials/**/*.ts", "index.ts"],
   "references": [
     { "path": "../protocol" },
     { "path": "../kernel" },
     { "path": "../extension-sdk" },
-    { "path": "../extension-runner" }
+    { "path": "../extension-runner" },
+    { "path": "../sync" }
   ],
   "exclude": ["node_modules", "dist"]
 }

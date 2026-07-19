@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "slice": 11,
+  "releaseId": "mobile-sync-mesh-2026-07-19",
+  "generatedAt": "2026-07-19T17:08:49.000Z",
+  "exitGate": {
+    "pairPhoneDesktopUnderSovereigntyRoot": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-11/exit-gate.txt",
+      "notes": "Phone and desktop enroll under one Sovereignty Root with monotonic membership epochs"
+    },
+    "syncKnownEventsE2EE": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-11/exit-gate.txt",
+      "notes": "Known vault events push as signed encrypted envelopes via SyncEventService"
+    },
+    "revokePhoneRotateKeysFutureUndecryptable": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-11/sync-revocation-tests.txt",
+      "notes": "Revocation rotates domain master keys; revoked phone cannot decrypt post-revocation ciphertext"
+    },
+    "directAndRelaySyncConverge": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-11/exit-gate.txt",
+      "notes": "Relay and direct peer paths converge on the same encrypted envelope set"
+    },
+    "computeHandoffProducesProofNotDataAuthoritative": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-11/compute-mesh-tests.txt",
+      "notes": "Compute mesh routes by capability/health and emits signed execution receipts with dataAuthoritative=false"
+    },
+    "offlineDecryptedDeletionCaveatHonest": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-11/exit-gate.txt",
+      "notes": "Pending offline deletion state never claims remote erasure of already-decrypted offline data"
+    }
+  },
+  "completedSlicesEligible": true,
+  "codeProvenExitItems": 6,
+  "runtimeVerifiedExitItems": 6,
+  "honestBlockers": []
+}

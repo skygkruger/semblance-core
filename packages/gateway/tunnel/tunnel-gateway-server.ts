@@ -42,6 +42,8 @@ export interface TunnelGatewayServerConfig {
   deviceId?: string;
   /** Platform name for /info responses */
   platform?: string;
+  /** Ciphertext-only sync relay exchange handler for direct peer sync */
+  handleSyncExchange?: (request: unknown) => Promise<unknown>;
 }
 
 /**
@@ -181,6 +183,11 @@ export class TunnelGatewayServer {
       return;
     }
 
+    if (req.method === 'POST' && url === '/sync/v1/exchange') {
+      await this.handleSyncExchange(req, res, remoteIp);
+      return;
+    }
+
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not found' }));
   }
@@ -231,6 +238,30 @@ export class TunnelGatewayServer {
       res.end(JSON.stringify({
         error: { code: 'TUNNEL_EXECUTION_ERROR', message: (error as Error).message },
       }));
+    }
+  }
+
+  private async handleSyncExchange(req: IncomingMessage, res: ServerResponse, _remoteIp: string): Promise<void> {
+    if (!this.config.handleSyncExchange) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'sync_exchange_not_configured' }));
+      return;
+    }
+
+    const body = await this.readBody(req);
+    if (!body) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+      return;
+    }
+
+    try {
+      const result = await this.config.handleSyncExchange(body);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (error as Error).message }));
     }
   }
 

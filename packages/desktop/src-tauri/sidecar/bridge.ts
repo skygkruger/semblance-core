@@ -45,6 +45,21 @@ import Database from 'better-sqlite3';
 import { nanoid } from 'nanoid';
 import { createSemblanceCore, type SemblanceCore, type ChatMessage } from '../../../core/index.js';
 import { bootstrapLocalVault, type LocalVaultBootstrap } from '../../../vault/src/index.js';
+import {
+  createSyncSecureStorageAdapter,
+  SovereigntyRootService,
+  SyncEventService,
+  SyncRelayClient,
+  ComputeMeshRouter,
+  buildComputeExecutionReceipt,
+  getOrCreateDeviceKeys,
+  type SovereigntyRootService as SyncRootService,
+  type SyncEventService as SyncEventServiceType,
+  type SyncRelayClient as SyncRelayClientType,
+  type ComputeMeshRouter as ComputeMeshRouterType,
+  type ComputeExecutionReceipt,
+} from '../../../sync/src/index.js';
+import { openMembershipStore } from '../../../sync/src/membership/store.js';
 import { createLLMProvider, BitNetProvider, InferenceRouter } from '../../../core/llm/index.js';
 import type { NativeRuntimeBridge } from '../../../core/llm/native-bridge-types.js';
 import { getPlatform } from '../../../core/platform/index.js';
@@ -60,6 +75,8 @@ import {
   CommerceTransport,
   gatewayFetch,
   gatewayHttpsGet,
+  GatewaySyncRelayAdapter,
+  GatewayDirectPeerTransport,
 } from '../../../gateway/index.js';
 import { installEgressGuard } from '../../../core/security/egress-guard.js';
 import type { ServiceCredential } from '../../../gateway/credentials/types.js';
@@ -378,6 +395,12 @@ const pendingCallbacks = callbackProtocol.pendingCallbacks;
 
 let core: SemblanceCore | null = null;
 let localVault: LocalVaultBootstrap | null = null;
+let syncRootService: SyncRootService | null = null;
+let syncEventService: SyncEventServiceType | null = null;
+let syncRelayClient: SyncRelayClientType | null = null;
+let computeMeshRouter: ComputeMeshRouterType | null = null;
+let gatewaySyncRelayAdapter: GatewaySyncRelayAdapter | null = null;
+let gatewayDirectPeerTransport: GatewayDirectPeerTransport | null = null;
 let gateway: Gateway | null = null;
 
 function getCommerceTransport(): CommerceTransport {
@@ -1016,6 +1039,13 @@ async function handleInitialize(): Promise<unknown> {
   ensureExecutionDestinationStores();
   ensureCloudBudgetStore();
 
+  try {
+    await initializeSyncRoot(dataDir);
+  } catch (syncRootErr) {
+    console.error('[sidecar] Sovereignty root initialization failed:', syncRootErr);
+    syncRootService = null;
+  }
+
   // ──── STEP 1: Open preferences DB FIRST ────
   // Preferences (onboarding state, user name, autonomy tiers) are independent
   // of the knowledge graph and must be available even if core fails to init.
@@ -1108,6 +1138,14 @@ async function handleInitialize(): Promise<unknown> {
   );
   await Promise.race([gateway.start(), gatewayTimeout]);
   console.error('[sidecar] Gateway started');
+
+  try {
+    await initializeSyncRelayClient();
+  } catch (syncRelayErr) {
+    console.error('[sidecar] Sync relay client initialization failed:', syncRelayErr);
+    syncRelayClient = null;
+  }
+
   representativeEmailWorkflowStore = createRepresentativeEmailWorkflowStore(join(dataDir, 'actions.db'));
   planStore = createPlanStore(dataDir);
   outcomeLinker = createOutcomeLinker(dataDir, {
@@ -5077,6 +5115,18 @@ async function handleShutdown(): Promise<unknown> {
     console.error('[sidecar] Local vault shut down');
   }
 
+  if (syncEventService) {
+    syncEventService.close();
+    syncEventService = null;
+    console.error('[sidecar] Sync event service shut down');
+  }
+
+  if (syncRootService) {
+    syncRootService.close();
+    syncRootService = null;
+    console.error('[sidecar] Sovereignty root shut down');
+  }
+
   if (gateway) {
     await gateway.stop();
     console.error('[sidecar] Gateway shut down');
@@ -6065,6 +6115,96 @@ async function runStyleExtraction(
 }
 
 // ─── Kernel entitlement helpers ───────────────────────────────────────────────
+
+async function initializeSyncRoot(sidecarDataDir: string): Promise<void> {
+  const keyStore = createFileKeyStore(join(sidecarDataDir, 'sync-keystore.json'));
+  const secureStorage = createSyncSecureStorageAdapter(keyStore);
+  syncRootService = await SovereigntyRootService.initialize({
+    dataDir: sidecarDataDir,
+    secureStorage,
+  });
+  const status = await syncRootService.getStatus();
+  console.error(
+    `[sidecar] Sovereignty root ready (rootId=${status.rootId}, epoch=${status.membershipEpoch}, devices=${status.activeDeviceCount})`,
+  );
+
+  const membershipStore = openMembershipStore(sidecarDataDir);
+  syncEventService = await SyncEventService.initialize({
+    dataDir: sidecarDataDir,
+    secureStorage,
+    membershipStore,
+    onRebuildIndexes: async (events) => {
+      console.error(`[sidecar] Sync merge rebuilt indexes for ${events.length} vault events`);
+    },
+  });
+  console.error('[sidecar] Sync event service ready');
+}
+
+async function initializeSyncRelayClient(): Promise<void> {
+  if (!syncRootService || !syncEventService || !gateway) {
+    return;
+  }
+
+  const status = await syncRootService.getStatus();
+  gatewaySyncRelayAdapter = new GatewaySyncRelayAdapter({
+    getRelayEndpoint: async () => {
+      const baseUrl = process.env['SEMBLANCE_SYNC_RELAY_URL']
+        ?? await sidecarKeychainStore.get('semblance.sync-relay', 'base_url');
+      const authToken = process.env['SEMBLANCE_SYNC_RELAY_TOKEN']
+        ?? await sidecarKeychainStore.get('semblance.sync-relay', 'auth_token');
+      if (!baseUrl || !authToken) {
+        return null;
+      }
+      return { baseUrl, authToken };
+    },
+    fetchImpl: gatewayFetch,
+  });
+
+  gatewayDirectPeerTransport = new GatewayDirectPeerTransport({
+    resolvePeerBaseUrl: async (peerDeviceId: string) => {
+      const meshUrl = process.env[`SEMBLANCE_PEER_MESH_URL_${peerDeviceId}`]
+        ?? await sidecarKeychainStore.get(`semblance.peer.${peerDeviceId}`, 'mesh_base_url');
+      if (meshUrl) {
+        return meshUrl;
+      }
+      if (tunnelGatewayServer?.isRunning()) {
+        const tunnelStatus = tunnelGatewayServer.getStatus();
+        return `http://${tunnelStatus.bindAddress}:${tunnelStatus.port}`;
+      }
+      return null;
+    },
+    fetchImpl: gatewayFetch,
+  });
+
+  syncRelayClient = new SyncRelayClient({
+    rootId: status.rootId,
+    deviceId: status.ownerDeviceId,
+    membershipEpoch: status.membershipEpoch,
+    relayTransport: gatewaySyncRelayAdapter,
+    directPeerTransport: gatewayDirectPeerTransport,
+  });
+
+  computeMeshRouter = new ComputeMeshRouter({
+    localDeviceId: status.ownerDeviceId,
+    localDeviceType: 'desktop',
+    localModelTier: '7B',
+    localHealth: {
+      reachable: true,
+      memoryPressure: 'normal',
+      lastSeenAt: new Date().toISOString(),
+    },
+  });
+
+  console.error('[sidecar] Sync relay client ready');
+  console.error('[sidecar] Compute mesh router ready');
+}
+
+function requireSyncRelayClient(): SyncRelayClientType {
+  if (!syncRelayClient) {
+    throw new Error('Sync relay client not initialized');
+  }
+  return syncRelayClient;
+}
 
 async function initializeKernelEntitlement(sidecarDataDir: string): Promise<void> {
   const keyStore = createFileKeyStore(join(sidecarDataDir, 'entitlement-keystore.json'));
@@ -10655,6 +10795,12 @@ async function handleRequest(req: Request): Promise<void> {
             validateAndExecute: async (req) => gateway!.getServiceRegistry().register as any,
             auditTrail: gateway.getAuditTrail(),
             deviceId: getPref('device_id') ?? 'desktop',
+            handleSyncExchange: async (request) => {
+              const client = requireSyncRelayClient();
+              return client.handleIncomingExchange(
+                request as import('@semblance/sync').SyncRelayExchangeRequest,
+              );
+            },
           });
         }
         if (!tunnelGatewayServer) { respondError(id, 'Gateway not initialized'); break; }
@@ -11140,6 +11286,313 @@ async function handleRequest(req: Request): Promise<void> {
           }
           const result = localVault.surface.deleteSource(deleteParams.sourceId);
           respond(id, { success: true, deletion: result });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'sync:root_status': {
+        if (!syncRootService) {
+          respondError(id, 'Sovereignty root not initialized');
+          break;
+        }
+        try {
+          const status = await syncRootService.getStatus();
+          const devices = syncRootService.listDevices(false);
+          respond(id, { status, devices });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'sync:add_device': {
+        if (!syncRootService) {
+          respondError(id, 'Sovereignty root not initialized');
+          break;
+        }
+        try {
+          const addParams = params as {
+            deviceId?: string;
+            devicePublicKey?: string;
+            authorizedByDeviceIds?: string[];
+          };
+          if (!addParams.deviceId || !addParams.devicePublicKey) {
+            respondError(id, 'deviceId and devicePublicKey are required');
+            break;
+          }
+          const result = await syncRootService.addDevice({
+            deviceId: addParams.deviceId,
+            devicePublicKey: addParams.devicePublicKey,
+            authorizedByDeviceIds: addParams.authorizedByDeviceIds ?? [],
+          });
+          respond(id, { success: true, result, status: await syncRootService.getStatus() });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'sync:revoke_device': {
+        if (!syncRootService) {
+          respondError(id, 'Sovereignty root not initialized');
+          break;
+        }
+        try {
+          const revokeParams = params as {
+            deviceId?: string;
+            authorizedByDeviceIds?: string[];
+          };
+          if (!revokeParams.deviceId) {
+            respondError(id, 'deviceId is required');
+            break;
+          }
+          const result = await syncRootService.revokeDevice({
+            deviceId: revokeParams.deviceId,
+            authorizedByDeviceIds: revokeParams.authorizedByDeviceIds ?? [],
+          });
+          respond(id, { success: true, result, status: await syncRootService.getStatus() });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'sync:push_events': {
+        if (!syncEventService) {
+          respondError(id, 'Sync event service not initialized');
+          break;
+        }
+        try {
+          const pushParams = params as {
+            domainId?: string;
+            events?: Array<{ eventType: string; payload: unknown; causalParentIds?: string[] }>;
+          };
+          if (!pushParams.domainId || !pushParams.events || pushParams.events.length === 0) {
+            respondError(id, 'domainId and non-empty events array are required');
+            break;
+          }
+          const result = await syncEventService.pushEvents({
+            domainId: pushParams.domainId,
+            events: pushParams.events,
+          });
+          respond(id, {
+            success: true,
+            pushedCount: result.pushed.length,
+            envelopes: result.pushed,
+            auditEntry: result.auditEntry,
+          });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'sync:pull_merge': {
+        if (!syncEventService) {
+          respondError(id, 'Sync event service not initialized');
+          break;
+        }
+        try {
+          const pullParams = params as {
+            incomingEnvelopes?: import('@semblance/protocol').SyncEnvelopeV1[];
+            createCheckpoint?: boolean;
+          };
+          const result = await syncEventService.pullMerge({
+            incomingEnvelopes: pullParams.incomingEnvelopes ?? [],
+            createCheckpoint: pullParams.createCheckpoint ?? true,
+          });
+          respond(id, {
+            success: true,
+            appliedEventIds: result.appliedEventIds,
+            skippedEventIds: result.skippedEventIds,
+            conflicts: result.conflicts,
+            mergedCount: result.merged.length,
+            checkpoint: result.checkpoint,
+            auditEntry: result.auditEntry,
+          });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'sync:relay_push': {
+        if (!syncEventService) {
+          respondError(id, 'Sync event service not initialized');
+          break;
+        }
+        try {
+          const relayParams = params as {
+            sinceLamport?: number;
+            domainId?: string;
+            events?: Array<{ eventType: string; payload: unknown; causalParentIds?: string[] }>;
+          };
+
+          let outgoing = syncEventService.listOutgoingEnvelopes(relayParams.sinceLamport);
+          if (relayParams.domainId && relayParams.events && relayParams.events.length > 0) {
+            const pushResult = await syncEventService.pushEvents({
+              domainId: relayParams.domainId,
+              events: relayParams.events,
+            });
+            outgoing = pushResult.pushed;
+          }
+
+          const client = requireSyncRelayClient();
+          const pushResult = await client.pushViaRelay(outgoing);
+          const pullResult = await client.pullViaRelay(relayParams.sinceLamport);
+          const mergeResult = await syncEventService.pullMerge({
+            incomingEnvelopes: pullResult.envelopes,
+            createCheckpoint: true,
+          });
+
+          respond(id, {
+            success: true,
+            relayAccepted: pushResult.accepted,
+            relayHeadHash: pushResult.headHash,
+            pulledCount: pullResult.envelopes.length,
+            merge: {
+              appliedEventIds: mergeResult.appliedEventIds,
+              mergedCount: mergeResult.merged.length,
+            },
+          });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'sync:direct_sync': {
+        if (!syncEventService) {
+          respondError(id, 'Sync event service not initialized');
+          break;
+        }
+        try {
+          const directParams = params as {
+            peerDeviceId?: string;
+            sinceLamport?: number;
+            domainId?: string;
+            events?: Array<{ eventType: string; payload: unknown; causalParentIds?: string[] }>;
+          };
+          if (!directParams.peerDeviceId) {
+            respondError(id, 'peerDeviceId is required');
+            break;
+          }
+
+          let outgoing = syncEventService.listOutgoingEnvelopes(directParams.sinceLamport);
+          if (directParams.domainId && directParams.events && directParams.events.length > 0) {
+            const pushResult = await syncEventService.pushEvents({
+              domainId: directParams.domainId,
+              events: directParams.events,
+            });
+            outgoing = pushResult.pushed;
+          }
+
+          const client = requireSyncRelayClient();
+          const directResult = await client.syncViaDirectPeer(directParams.peerDeviceId, outgoing);
+          const mergeResult = await syncEventService.pullMerge({
+            incomingEnvelopes: directResult.envelopes,
+            createCheckpoint: true,
+          });
+
+          respond(id, {
+            success: true,
+            peerDeviceId: directParams.peerDeviceId,
+            pulledCount: directResult.envelopes.length,
+            headHash: directResult.headHash,
+            merge: {
+              appliedEventIds: mergeResult.appliedEventIds,
+              mergedCount: mergeResult.merged.length,
+            },
+          });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'sync:direct_exchange': {
+        try {
+          const exchangeParams = params as { request?: import('@semblance/sync').SyncRelayExchangeRequest };
+          if (!exchangeParams.request) {
+            respondError(id, 'request is required');
+            break;
+          }
+          const client = requireSyncRelayClient();
+          const response = client.handleIncomingExchange(exchangeParams.request);
+          respond(id, { success: true, response });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'compute:route_task': {
+        if (!computeMeshRouter || !syncRootService) {
+          respondError(id, 'Compute mesh router not initialized');
+          break;
+        }
+        try {
+          const routeParams = params as {
+            taskType?: 'inference' | 'embedding' | 'analysis';
+            complexity?: 'lightweight' | 'medium' | 'heavy';
+            computePayload?: unknown;
+          };
+          if (!routeParams.taskType || !routeParams.complexity) {
+            respondError(id, 'taskType and complexity are required');
+            break;
+          }
+          const decision = computeMeshRouter.routeTask({
+            taskType: routeParams.taskType,
+            complexity: routeParams.complexity,
+            computePayload: routeParams.computePayload ?? { taskRef: 'sidecar-route' },
+          });
+          respond(id, { success: true, decision });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'compute:build_receipt': {
+        if (!computeMeshRouter || !syncRootService) {
+          respondError(id, 'Compute mesh router not initialized');
+          break;
+        }
+        try {
+          const receiptParams = params as {
+            receiptId?: string;
+            taskType?: 'inference' | 'embedding' | 'analysis';
+            modelId?: string;
+            modelProvenance?: string;
+            computePayload?: unknown;
+            routeReason?: string;
+          };
+          if (!receiptParams.receiptId || !receiptParams.taskType || !receiptParams.modelId) {
+            respondError(id, 'receiptId, taskType, and modelId are required');
+            break;
+          }
+          const keyStore = createFileKeyStore(join(dataDir, 'sync-keystore.json'));
+          const secureStorage = createSyncSecureStorageAdapter(keyStore);
+          const deviceKeys = await getOrCreateDeviceKeys(secureStorage);
+          const decision = computeMeshRouter.routeTask({
+            taskType: receiptParams.taskType,
+            complexity: 'heavy',
+            computePayload: receiptParams.computePayload ?? { taskRef: receiptParams.receiptId },
+          });
+          const receipt: ComputeExecutionReceipt = buildComputeExecutionReceipt({
+            receiptId: receiptParams.receiptId,
+            taskType: receiptParams.taskType,
+            executedOnDeviceId: deviceKeys.deviceId,
+            executedOnDeviceType: 'desktop',
+            modelId: receiptParams.modelId,
+            modelProvenance: receiptParams.modelProvenance ?? 'local-sidecar',
+            computePayload: receiptParams.computePayload ?? { taskRef: receiptParams.receiptId },
+            routeReason: receiptParams.routeReason ?? decision.reason,
+            devicePrivateKey: deviceKeys.privateKey,
+          });
+          respond(id, { success: true, receipt, decision, dataAuthoritative: false });
         } catch (err) {
           respondError(id, (err as Error).message);
         }

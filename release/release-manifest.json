@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "releaseId": "today-proactive-agency-2026-07-19",
-  "generatedAt": "2026-07-19T08:52:00Z",
+  "releaseId": "mobile-sync-mesh-2026-07-19",
+  "generatedAt": "2026-07-19T17:08:49Z",
   "repositories": {
     "core": {
-      "sourceCommit": "acb46cc35a16b7923caecd18a8ecee1f38974dca",
-      "sourceTreeHash": "d9ff64178ada6bb3a7a49f8a722ebdf6a428709b"
+      "sourceCommit": "7ae319499520ee202f333097f172fb4a8ed64da9",
+      "sourceTreeHash": "eb57df0d27439b76368647d936607278aad4bbad"
     },
     "representative": {
       "sourceCommit": "349df71eed30ba87f6b8f1679af3337526c668a2",
@@ -743,6 +743,46 @@
       "requiredForStates": [
         "RuntimeVerified"
       ]
+    },
+    {
+      "id": "slice-11-exit-gate",
+      "repository": "core",
+      "path": "release/evidence/slice-11/slice-11-exit-gate.json",
+      "sha256": "84ce7435b3aec653d340791d4c3f14c03b50e8e632a4f13b1e4d7aee035aee5a",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-11-exit-gate-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-11/exit-gate.txt",
+      "sha256": "b17dbd346490b0d25ae43442b91b5e31789ae3f5cbf02ee9b860e9ca36e0aab3",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-11-sync-revocation-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-11/sync-revocation-tests.txt",
+      "sha256": "f4d84993db3607e2dd7350b02da1a4480589614e8b02da55188b8224e0c16e53",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-11-compute-mesh-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-11/compute-mesh-tests.txt",
+      "sha256": "d16171fafb07e662687128bd005fa47e6d1a9b3a3daaafa2ae5c8c836d7c2fd7",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
     }
   ],
   "commerce": {
@@ -770,7 +810,8 @@
     7,
     8,
     9,
-    10
+    10,
+    11
   ],
   "features": [
     {
@@ -1053,6 +1094,29 @@
         "slice-10-exit-gate-tests",
         "slice-10-proof-center-tests",
         "slice-10-today-snapshot-tests"
+      ],
+      "protocolVersions": {
+        "releaseEvidence": 1,
+        "execution": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": null
+    },
+    {
+      "id": "mobile-sync-mesh",
+      "name": "Mobile peer, encrypted sync, and compute mesh",
+      "repository": "core",
+      "state": "AdversariallyVerified",
+      "usesDigitalRepresentative": false,
+      "signedArtifactNames": [],
+      "evidenceIds": [
+        "slice-11-exit-gate",
+        "slice-11-exit-gate-tests",
+        "slice-11-sync-revocation-tests",
+        "slice-11-compute-mesh-tests"
       ],
       "protocolVersions": {
         "releaseEvidence": 1,

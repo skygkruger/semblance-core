@@ -12,9 +12,17 @@
 // full knowledge graph. Each device fetches/builds its own.
 //
 // CRITICAL: All sync is local network only. No cloud relay.
-// Transport is encrypted using a shared secret derived during pairing.
+// Vault event envelopes delegate crypto/merge to @semblance/sync.
 
 import { nanoid } from 'nanoid';
+import type { SyncEnvelopeV1 } from '@semblance/sync';
+import {
+  createSignedEncryptedVaultEvent,
+  mergeVaultEvents,
+  type MergeableEvent,
+  type MergeResult,
+  type SyncSecureStorageAdapter,
+} from '@semblance/sync';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -505,4 +513,52 @@ export interface TriggerSyncResult {
   devicesFound: number;
   itemsSynced: number;
   error?: string;
+}
+
+/** Domain identifier for routing/state vault events in sync mesh. */
+export const ROUTING_SYNC_DOMAIN_ID = 'routing_state';
+
+export interface VaultEventSyncContext {
+  readonly deviceId: string;
+  readonly devicePrivateKey: string;
+  readonly membershipEpoch: number;
+  readonly secureStorage: SyncSecureStorageAdapter;
+  readonly lamportClock: number;
+  readonly vectorClock: Record<string, number>;
+}
+
+/**
+ * Export sync manifest items as encrypted vault event envelopes via @semblance/sync.
+ */
+export async function manifestToVaultEventEnvelopes(
+  manifest: SyncManifest,
+  context: VaultEventSyncContext,
+): Promise<SyncEnvelopeV1[]> {
+  if (manifest.items.length === 0) {
+    return [];
+  }
+
+  const envelope = await createSignedEncryptedVaultEvent({
+    deviceId: context.deviceId,
+    devicePrivateKey: context.devicePrivateKey,
+    membershipEpoch: context.membershipEpoch,
+    domainId: ROUTING_SYNC_DOMAIN_ID,
+    eventType: 'routing.manifest',
+    payload: manifest,
+    lamportClock: context.lamportClock,
+    vectorClock: context.vectorClock,
+    secureStorage: context.secureStorage,
+  });
+
+  return [envelope];
+}
+
+/**
+ * Merge routing vault events using @semblance/sync causal merge.
+ */
+export function mergeRoutingVaultEvents(
+  localEvents: readonly MergeableEvent[],
+  incomingEvents: readonly MergeableEvent[],
+): MergeResult {
+  return mergeVaultEvents({ localEvents, incomingEvents });
 }

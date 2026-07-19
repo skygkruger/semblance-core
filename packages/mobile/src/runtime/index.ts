@@ -19,6 +19,12 @@ export {
 export type { MobileRuntimeState } from './mobile-runtime';
 
 export {
+  createSovereignNodeClient,
+  SovereignNodeClient,
+} from './sovereign-node-client';
+export type { SovereignNodeClientOptions, SovereignNodeStatus } from './sovereign-node-client';
+
+export {
   createRNFSAdapter,
   createCryptoAdapter,
   createSQLiteAdapter,

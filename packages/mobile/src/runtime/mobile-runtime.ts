@@ -52,6 +52,10 @@ import {
 } from './platform-adapters';
 import { createSQLiteVectorStore } from './sqlite-vector-store';
 import { MobileGatewayTransport } from './mobile-gateway';
+import {
+  createSovereignNodeClient,
+  type SovereignNodeClient,
+} from './sovereign-node-client';
 
 // Native bridges
 import { createMobileVoiceAdapter } from '../native/voice-bridge';
@@ -76,6 +80,8 @@ export interface MobileRuntimeState {
   inferenceBridge: MobileInferenceBridge | null;
   /** Conversation manager for multi-conversation CRUD */
   conversationManager: ConversationManager | null;
+  /** Sovereign sync/compute peer client */
+  sovereignNode: SovereignNodeClient | null;
   /** Data directory path */
   dataDir: string;
   /** Device profile info */
@@ -100,6 +106,7 @@ const initialState: MobileRuntimeState = {
   modelManager: null,
   inferenceBridge: null,
   conversationManager: null,
+  sovereignNode: null,
   dataDir: '',
   deviceInfo: null,
   error: null,
@@ -310,7 +317,22 @@ async function doInitialize(onProgress?: ProgressCallback): Promise<MobileRuntim
       }
     }
 
-    // ─── Step 5b: Conversation Manager ──────────────────────────────────
+    // ─── Step 5b: Sovereign Node Client ─────────────────────────────────
+    updateProgress(75, 'Initializing sovereign sync...', onProgress);
+
+    try {
+      const sovereignNode = await createSovereignNodeClient({
+        dataDir,
+        deviceType: 'mobile',
+        modelTier: deviceProfile.tier === 'constrained' ? '1.5B' : '3B',
+      });
+      runtimeState.sovereignNode = sovereignNode;
+      console.log('[MobileRuntime] Sovereign node client ready');
+    } catch (err) {
+      console.error('[MobileRuntime] Sovereign node init failed:', err);
+    }
+
+    // ─── Step 5c: Conversation Manager ──────────────────────────────────
     updateProgress(80, 'Setting up conversations...', onProgress);
 
     try {
@@ -378,6 +400,9 @@ async function doInitialize(onProgress?: ProgressCallback): Promise<MobileRuntim
  * Shut down the mobile runtime.
  */
 export async function shutdownMobileRuntime(): Promise<void> {
+  if (runtimeState.sovereignNode) {
+    await runtimeState.sovereignNode.shutdown();
+  }
   if (runtimeState.core) {
     await runtimeState.core.shutdown();
   }

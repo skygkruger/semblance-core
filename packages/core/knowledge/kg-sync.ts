@@ -5,7 +5,19 @@
 // NOT synced — each device rebuilds them from content for its local model.
 //
 // Payload cap: 10 MB. If the delta exceeds this, it is truncated oldest-first.
+//
+// Encrypted vault event envelopes are delegated to @semblance/sync — this module
+// remains the KG delta authority but does not implement parallel crypto.
 
+import type { SyncEnvelopeV1 } from '@semblance/sync';
+import {
+  createSignedEncryptedVaultEvent,
+  decryptAndVerifyVaultEvent,
+  mergeVaultEvents,
+  type MergeableEvent,
+  type MergeResult,
+  type SyncSecureStorageAdapter,
+} from '@semblance/sync';
 import type { Document, DocumentChunk, DocumentSource } from './types.js';
 
 /** Maximum sync payload size in bytes (10 MB) */
@@ -164,4 +176,79 @@ export function applyKGDelta(
   }
 
   return { newDocuments, duplicates, deleted };
+}
+
+/** Domain identifier for knowledge graph vault events in sync mesh. */
+export const KG_SYNC_DOMAIN_ID = 'knowledge_graph';
+
+export interface KGSyncEnvelopeContext {
+  readonly deviceId: string;
+  readonly devicePrivateKey: string;
+  readonly membershipEpoch: number;
+  readonly secureStorage: SyncSecureStorageAdapter;
+  readonly lamportClock: number;
+  readonly vectorClock: Record<string, number>;
+  readonly causalParentIds?: readonly string[];
+}
+
+/**
+ * Wrap a KG sync delta in a signed, encrypted vault event envelope via @semblance/sync.
+ */
+export async function kgDeltaToSyncEnvelope(
+  delta: KGSyncDelta,
+  context: KGSyncEnvelopeContext,
+): Promise<SyncEnvelopeV1> {
+  return createSignedEncryptedVaultEvent({
+    deviceId: context.deviceId,
+    devicePrivateKey: context.devicePrivateKey,
+    membershipEpoch: context.membershipEpoch,
+    domainId: KG_SYNC_DOMAIN_ID,
+    eventType: 'kg.delta',
+    payload: delta,
+    causalParentIds: context.causalParentIds,
+    lamportClock: context.lamportClock,
+    vectorClock: context.vectorClock,
+    secureStorage: context.secureStorage,
+  });
+}
+
+export interface KGSyncEnvelopeDecryptContext {
+  readonly devicePublicKeys: ReadonlyMap<string, string>;
+  readonly secureStorage: SyncSecureStorageAdapter;
+  readonly minMembershipEpoch?: number;
+}
+
+/**
+ * Decrypt and verify a KG sync envelope, returning the delta payload.
+ */
+export async function syncEnvelopeToKGDelta(
+  envelope: SyncEnvelopeV1,
+  context: KGSyncEnvelopeDecryptContext,
+): Promise<KGSyncDelta> {
+  if (envelope.envelopeKind !== 'encrypted_event') {
+    throw new Error('Expected encrypted_event envelope for KG sync');
+  }
+
+  const plaintext = await decryptAndVerifyVaultEvent({
+    envelope: envelope.payload,
+    devicePublicKeys: context.devicePublicKeys,
+    secureStorage: context.secureStorage,
+    minMembershipEpoch: context.minMembershipEpoch,
+  });
+
+  if (plaintext.eventType !== 'kg.delta') {
+    throw new Error(`Unexpected vault event type: ${plaintext.eventType}`);
+  }
+
+  return plaintext.payload as KGSyncDelta;
+}
+
+/**
+ * Merge KG sync events using causal merge from @semblance/sync.
+ */
+export function mergeKGSyncEvents(
+  localEvents: readonly MergeableEvent[],
+  incomingEvents: readonly MergeableEvent[],
+): MergeResult {
+  return mergeVaultEvents({ localEvents, incomingEvents });
 }

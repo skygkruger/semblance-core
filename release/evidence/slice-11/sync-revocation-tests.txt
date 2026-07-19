@@ -1,0 +1,19 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @semblance/sync@0.1.0 test
+> vitest run
+
+
+ RUN  v4.0.18 /Users/veridiansynthetics/semblance-core/packages/sync
+
+ ✓ tests/compute-mesh.test.ts (3 tests) 4ms
+ ✓ tests/revocation-rekey.test.ts (3 tests) 51ms
+ ✓ tests/relay-convergence.test.ts (2 tests) 57ms
+ ✓ tests/vault-events.test.ts (6 tests) 61ms
+ ✓ tests/sovereignty-root.test.ts (7 tests) 62ms
+
+ Test Files  5 passed (5)
+      Tests  21 passed (21)
+   Start at  10:08:45
+   Duration  332ms (transform 481ms, setup 0ms, import 802ms, tests 234ms, environment 0ms)
+
