@@ -84,7 +84,17 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: pnpm --dir packages/desktop exec tauri build --target x86_64-pc-windows-msvc
+        # Skip monorepo `tsc --build` (broken path resolution on clean CI) and
+        # skip esbuild sidecar rebundle (use checked-in *.cjs). Still build UI + runtimes.
+        shell: pwsh
+        run: |
+          $cfg = @{
+            build = @{
+              beforeBuildCommand = "cd packages/desktop && npm run build && node ../../scripts/bundle-runtimes.js"
+            }
+          } | ConvertTo-Json -Depth 5 -Compress
+          Set-Content -Path field-proof-tauri.overlay.json -Value $cfg -Encoding utf8
+          pnpm --dir packages/desktop exec tauri build --target x86_64-pc-windows-msvc --config ../../field-proof-tauri.overlay.json
       - name: Stage MSI
         shell: powershell
         run: |

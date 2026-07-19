@@ -287880,11 +287880,18 @@ async function handleInitialize() {
   let activeModel = null;
   let availableModels = [];
   const modelsBaseDir = dataDir ? (0, import_node_path15.join)(dataDir, "models").replace(/[/\\]models$/, "") : void 0;
-  if (core) {
+  const launchFloorMode = process.env["SEMBLANCE_LAUNCH_FLOOR"] === "1";
+  if (launchFloorMode) {
+    console.error("[sidecar] SEMBLANCE_LAUNCH_FLOOR=1 — skipping Ollama probe and model loads for ready-timing");
+  }
+  if (core && !launchFloorMode) {
     try {
       const { Ollama: Ollama3 } = await Promise.resolve().then(() => (init_dist(), dist_exports));
       const ollamaClient = new Ollama3({ host: "http://localhost:11434" });
-      const listResponse = await ollamaClient.list();
+      const listResponse = await Promise.race([
+        ollamaClient.list(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Ollama list timed out after 2s")), 2e3))
+      ]);
       const ollamaModels = listResponse.models.map((m) => m.name);
       if (ollamaModels.length > 0) {
         const { OllamaProvider: OllamaProvider2 } = await Promise.resolve().then(() => (init_ollama_provider(), ollama_provider_exports));
@@ -287910,7 +287917,7 @@ async function handleInitialize() {
       console.error("[sidecar] Ollama not running \u2014 will use NativeRuntime CPU inference");
     }
   }
-  for (const model of MODEL_CATALOG) {
+  if (!launchFloorMode) for (const model of MODEL_CATALOG) {
     if (!model.isEmbedding) continue;
     if (isModelDownloaded(model.id, modelsBaseDir, model.fileSizeBytes)) {
       const modelPath = getModelPath(model.id, modelsBaseDir);
@@ -287925,7 +287932,7 @@ async function handleInitialize() {
       }
     }
   }
-  if (inferenceEngine !== "ollama") {
+  if (!launchFloorMode && inferenceEngine !== "ollama") {
     const primaryCandidates = MODEL_CATALOG.filter((m) => !m.isEmbedding && m.inferenceTier === "primary");
     const fallbackCandidates = MODEL_CATALOG.filter((m) => !m.isEmbedding && m.inferenceTier !== "primary");
     const reasoningCandidates = [...primaryCandidates, ...fallbackCandidates];
@@ -287964,6 +287971,7 @@ async function handleInitialize() {
       console.error("[sidecar] NativeRuntime not available");
     }
   }
+  if (!launchFloorMode) {
   try {
     const phi4 = getFastTierModel("performance");
     const smol = getFastTierModel("constrained");
@@ -288057,6 +288065,7 @@ async function handleInitialize() {
         }
       }
     }
+  }
   }
   if (inferenceEngine === "none" && !activeModel) {
     console.error("[sidecar] WARNING: No inference model available. Chat will prompt user to download a model.");

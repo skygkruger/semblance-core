@@ -1607,14 +1607,24 @@ async function handleInitialize(): Promise<unknown> {
   let activeModel: string | null = null;
   let availableModels: string[] = [];
   const modelsBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
+  const launchFloorMode = process.env['SEMBLANCE_LAUNCH_FLOOR'] === '1';
+  if (launchFloorMode) {
+    console.error('[sidecar] SEMBLANCE_LAUNCH_FLOOR=1 — skipping Ollama probe and model loads for ready-timing');
+  }
 
   // ── Step 1: Check Ollama (GPU-accelerated, dramatically faster) ──────────
   // If Ollama is running with a model, use it. 30-50 tok/s on GPU vs 1-2 on CPU.
-  if (core) {
+  if (core && !launchFloorMode) {
     try {
       const { Ollama } = await import('ollama');
       const ollamaClient = new Ollama({ host: 'http://localhost:11434' });
-      const listResponse = await ollamaClient.list();
+      // Bound the probe — a hung TCP connect must not block initialize / launch-floor.
+      const listResponse = await Promise.race([
+        ollamaClient.list(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Ollama list timed out after 2s')), 2000),
+        ),
+      ]);
       const ollamaModels = listResponse.models.map((m: { name: string }) => m.name);
 
       if (ollamaModels.length > 0) {
@@ -1645,7 +1655,7 @@ async function handleInitialize(): Promise<unknown> {
   }
 
   // ── Step 2: Load embedding model (always needed, even with Ollama) ───────
-  for (const model of MODEL_CATALOG) {
+  if (!launchFloorMode) for (const model of MODEL_CATALOG) {
     if (!model.isEmbedding) continue;
     if (isModelDownloaded(model.id, modelsBaseDir, model.fileSizeBytes)) {
       const modelPath = getModelPath(model.id, modelsBaseDir);
@@ -1662,7 +1672,7 @@ async function handleInitialize(): Promise<unknown> {
   }
 
   // ── Step 3: If no Ollama, load standard GGUF reasoning model (Qwen/Phi) ───
-  if (inferenceEngine !== 'ollama') {
+  if (!launchFloorMode && inferenceEngine !== 'ollama') {
     // Prefer primary-tier models (Qwen3) over fast-tier (Phi-4-Mini) for reasoning slot.
     const primaryCandidates = MODEL_CATALOG.filter(m => !m.isEmbedding && m.inferenceTier === 'primary');
     const fallbackCandidates = MODEL_CATALOG.filter(m => !m.isEmbedding && m.inferenceTier !== 'primary');
@@ -1705,6 +1715,7 @@ async function handleInitialize(): Promise<unknown> {
     }
   }
 
+  if (!launchFloorMode) {
   // ── Step 3b: Load fast tier model if available on disk ────────────────────
   // At startup, tier is unknown — try Phi-4-Mini first (performance+), fall back to SmolLM2.
   // The correct model will already be downloaded from onboarding based on detected tier.
@@ -1816,6 +1827,8 @@ async function handleInitialize(): Promise<unknown> {
         }
       }
     }
+  }
+
   }
 
   // ── No Model Warning ──────────────────────────────────────────────────────

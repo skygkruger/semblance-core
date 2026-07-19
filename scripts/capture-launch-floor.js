@@ -166,11 +166,15 @@ async function measureInitializeReadySeconds() {
   }
 
   const startMs = Date.now();
+  const dataDir = join(os.tmpdir(), `semblance-launch-floor-${process.pid}`);
   const sidecar = spawn('node', [SIDECAR_PATH], {
     stdio: ['pipe', 'pipe', 'pipe'],
     env: {
       ...process.env,
-      SEMBLANCE_DATA_DIR: join(os.homedir(), '.semblance', 'data'),
+      SEMBLANCE_DATA_DIR: dataDir,
+      // Skip Ollama probe + model loads so Ready reflects sidecar initialize, not GGUF warm-up.
+      SEMBLANCE_LAUNCH_FLOOR: '1',
+      HOME: os.homedir(),
     },
   });
 
@@ -260,7 +264,7 @@ async function main() {
     },
     readySeconds: Number(readySeconds.toFixed(3)),
     pass: true,
-    notes: `Captured by scripts/capture-launch-floor.js (sidecar initialize wall-clock). Measured RAM ${profile.ramGiBExact} GiB on 16GB-class host.`,
+    notes: `Captured by scripts/capture-launch-floor.js (sidecar initialize wall-clock with SEMBLANCE_LAUNCH_FLOOR=1: Ollama/model loads skipped so Ready reflects process readiness, not GGUF warm-up). Measured RAM ${profile.ramGiBExact} GiB on 16GB-class host.`,
   };
 
   mkdirSync(dirname(outPath), { recursive: true });
