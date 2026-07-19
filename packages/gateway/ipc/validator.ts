@@ -12,8 +12,11 @@ import {
 import type { ActionType } from '@semblance/core';
 import {
   createInMemoryActionLifecycleStore,
+  evaluateAutonomyCapability,
   executeAuditedAction,
+  extractActionDestination,
   type ActionLifecycleStore,
+  type AutonomyTier,
   type ExternalConfirmationChecker,
 } from '@semblance/kernel';
 import type { AuditTrail } from '../audit/trail.js';
@@ -24,7 +27,15 @@ import type { AnomalyDetector } from '../security/anomaly-detector.js';
 import type { ServiceRegistry } from '../services/registry.js';
 import { getDefaultTimeSaved } from '../audit/time-saved-defaults.js';
 
-export interface ValidatorDeps {
+export interface AutonomyEvaluationHooks {
+  getAutonomyTier?: (action: ActionType, payload: Record<string, unknown>) => AutonomyTier;
+  getPriorApprovalsForCapability?: (
+    action: ActionType,
+    payload: Record<string, unknown>,
+  ) => number;
+}
+
+export interface ValidatorDeps extends AutonomyEvaluationHooks {
   signingKey: Buffer;
   auditTrail: AuditTrail;
   allowlist: Allowlist;
@@ -34,6 +45,23 @@ export interface ValidatorDeps {
   actionLifecycleStore?: ActionLifecycleStore;
   externalConfirmationChecker?: ExternalConfirmationChecker;
   dispatchTimeoutMs?: number;
+}
+
+function resolveAutonomyEvaluation(
+  action: ActionType,
+  payload: Record<string, unknown>,
+  deps: ValidatorDeps,
+) {
+  const tier = deps.getAutonomyTier?.(action, payload) ?? 'partner';
+  const priorApprovalsForThisCapability =
+    deps.getPriorApprovalsForCapability?.(action, payload) ?? 0;
+
+  return evaluateAutonomyCapability({
+    tier,
+    action,
+    destination: extractActionDestination(action, payload),
+    priorApprovalsForThisCapability,
+  });
 }
 
 type RejectionReason =
@@ -261,6 +289,27 @@ export async function validateAndExecute(
     // Non-burst anomalies are logged but don't block
   }
 
+  // --- Step 5b: Per-capability autonomy gate ---
+  const autonomyEvaluation = resolveAutonomyEvaluation(request.action, request.payload, deps);
+  if (!autonomyEvaluation.allow) {
+    const auditRef = logRejection(
+      deps.auditTrail,
+      request.id,
+      request.action,
+      payloadHash,
+      request.signature,
+      'anomaly_detected',
+      autonomyEvaluation.reason,
+    );
+    return makeErrorResponse(
+      request.id,
+      'error',
+      'AUTONOMY_BLOCKED',
+      autonomyEvaluation.reason,
+      auditRef,
+    );
+  }
+
   // --- Step 6–8: Kernel action lifecycle with audit-before-dispatch ---
   deps.rateLimiter.record(request.action);
 
@@ -272,6 +321,8 @@ export async function validateAndExecute(
     actionType: request.action,
     payloadHash,
     auditCorrelationId: request.id,
+    autoApprove: !autonomyEvaluation.requiresApproval,
+    approvalReason: autonomyEvaluation.reason,
     externalChecker: deps.externalConfirmationChecker,
     dispatchTimeoutMs: deps.dispatchTimeoutMs,
     logAuditPending: () => deps.auditTrail.logPending({
@@ -294,6 +345,35 @@ export async function validateAndExecute(
   });
 
   const executionResult = lifecycleResult.execution;
+
+  if (executionResult.error?.code === 'REQUIRES_APPROVAL') {
+    const responseAuditId = deps.auditTrail.append({
+      requestId: request.id,
+      timestamp: new Date().toISOString(),
+      action: request.action,
+      direction: 'response',
+      status: 'pending',
+      payloadHash,
+      signature: request.signature,
+      metadata: {
+        actionId: lifecycleResult.record.actionId,
+        actionState: lifecycleResult.record.state,
+        autonomyReason: autonomyEvaluation.reason,
+      },
+      estimatedTimeSavedSeconds: getDefaultTimeSaved(request.action),
+    });
+
+    return {
+      requestId: request.id,
+      timestamp: new Date().toISOString(),
+      status: 'requires_approval',
+      error: {
+        code: 'AUTONOMY_REQUIRES_APPROVAL',
+        message: executionResult.error.message,
+      },
+      auditRef: responseAuditId,
+    };
+  }
 
   const responseAuditId = deps.auditTrail.append({
     requestId: request.id,

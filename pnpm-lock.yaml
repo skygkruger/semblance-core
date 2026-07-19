@@ -87,6 +87,9 @@ importers:
       '@noble/curves':
         specifier: ^1.9.7
         version: 1.9.7
+      '@semblance/kernel':
+        specifier: workspace:*
+        version: link:../kernel
       '@semblance/protocol':
         specifier: workspace:*
         version: link:../protocol

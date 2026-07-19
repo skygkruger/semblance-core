@@ -1019,6 +1019,18 @@ async function handleInitialize(): Promise<unknown> {
     );
     await Promise.race([core.initialize(), initTimeout]);
     console.error('[sidecar] Core initialized');
+
+    if (gateway && core?.agent?.autonomy) {
+      gateway.setAutonomyHooks({
+        getAutonomyTier: (action, _payload) => {
+          const domain = core.agent.autonomy.getDomainForAction(action);
+          return core.agent.autonomy.getDomainTier(domain);
+        },
+        getPriorApprovalsForCapability: (action, payload) =>
+          core.agent.getApprovalCount(action, payload),
+      });
+      console.error('[sidecar] Gateway autonomy hooks wired');
+    }
   } catch (coreErr) {
     console.error('[sidecar] Core initialization failed (knowledge graph unavailable):', coreErr);
     // Core may be partially initialized — keep it so chat can still work

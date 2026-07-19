@@ -81,6 +81,8 @@ describe('Validation Pipeline', () => {
       rateLimiter,
       anomalyDetector,
       serviceRegistry,
+      getAutonomyTier: () => 'alter_ego',
+      getPriorApprovalsForCapability: () => 10,
     };
   });
 

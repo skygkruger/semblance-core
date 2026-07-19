@@ -9,6 +9,11 @@ import type {
   AutonomyDomain,
 } from './types.js';
 import type { PreferenceGraph } from './preference-graph.js';
+import {
+  evaluateAutonomyCapability,
+  extractActionDestination,
+  isCapabilityScopedAction,
+} from './autonomy-capability-evaluator.js';
 
 const CREATE_TABLE = `
   CREATE TABLE IF NOT EXISTS autonomy_config (
@@ -267,12 +272,23 @@ export class AutonomyManager {
   private defaultTier: AutonomyTier;
   private onPreferenceChanged?: (domain: string, tier: string) => void;
   private preferenceGraph: PreferenceGraph | null = null;
+  private getPriorApprovalsForCapability?: (
+    action: ActionType,
+    context?: Record<string, unknown>,
+  ) => number;
 
-  constructor(db: DatabaseHandle, config?: AutonomyConfig & { onPreferenceChanged?: (domain: string, tier: string) => void }) {
+  constructor(db: DatabaseHandle, config?: AutonomyConfig & {
+    onPreferenceChanged?: (domain: string, tier: string) => void;
+    getPriorApprovalsForCapability?: (
+      action: ActionType,
+      context?: Record<string, unknown>,
+    ) => number;
+  }) {
     this.db = db;
     this.db.exec(CREATE_TABLE);
     this.defaultTier = config?.defaultTier ?? 'partner';
     this.onPreferenceChanged = config?.onPreferenceChanged;
+    this.getPriorApprovalsForCapability = config?.getPriorApprovalsForCapability;
 
     // Apply domain overrides from config
     if (config?.domainOverrides) {
@@ -292,12 +308,21 @@ export class AutonomyManager {
   }
 
   /**
+   * Wire approval-pattern lookup for per-capability prior approval counts.
+   */
+  setPriorApprovalsProvider(
+    provider: (action: ActionType, context?: Record<string, unknown>) => number,
+  ): void {
+    this.getPriorApprovalsForCapability = provider;
+  }
+
+  /**
    * Decide whether an action should be auto-approved, requires approval, or is blocked.
    * Consults preference graph after tier/risk check — high-confidence learned preferences
    * can upgrade requires_approval → auto_approve (never downgrade).
    */
   decide(action: ActionType, context?: Record<string, unknown>): AutonomyDecision {
-    const baseDecision = this.decideBase(action);
+    const baseDecision = this.decideBase(action, context);
 
     // Preference graph integration: high-confidence learned preference can upgrade
     // requires_approval → auto_approve (but never downgrade auto_approve).
@@ -317,11 +342,41 @@ export class AutonomyManager {
   }
 
   /**
-   * Base autonomy decision (tier + risk only, no preference graph).
+   * Base autonomy decision (tier + capability map + risk fallback).
    */
-  private decideBase(action: ActionType): AutonomyDecision {
+  private decideBase(action: ActionType, context?: Record<string, unknown>): AutonomyDecision {
     const domain = ACTION_DOMAIN_MAP[action];
     const tier = this.getDomainTier(domain);
+    const payloadContext = context ?? {};
+
+    if (isCapabilityScopedAction(action)) {
+      const priorApprovals = typeof payloadContext['priorApprovalsForThisCapability'] === 'number'
+        ? payloadContext['priorApprovalsForThisCapability']
+        : this.getPriorApprovalsForCapability?.(action, payloadContext) ?? 0;
+
+      const capabilityResult = evaluateAutonomyCapability({
+        tier,
+        action,
+        account: typeof payloadContext['account'] === 'string' ? payloadContext['account'] : undefined,
+        destination: extractActionDestination(action, payloadContext),
+        sensitivity: typeof payloadContext['sensitivity'] === 'number'
+          ? payloadContext['sensitivity']
+          : undefined,
+        valueMinorUnits: typeof payloadContext['valueMinorUnits'] === 'number'
+          ? payloadContext['valueMinorUnits']
+          : undefined,
+        priorApprovalsForThisCapability: priorApprovals,
+      });
+
+      if (!capabilityResult.allow) {
+        return 'blocked';
+      }
+      if (capabilityResult.requiresApproval) {
+        return 'requires_approval';
+      }
+      return 'auto_approve';
+    }
+
     const risk = ACTION_RISK_MAP[action];
 
     switch (tier) {

@@ -977,6 +977,9 @@ export class OrchestratorImpl implements Orchestrator {
     this.model = config.model;
     this.contextBudget = new AdaptiveContextBudget();
     this.patternTracker = new ApprovalPatternTracker(config.db);
+    this.autonomy.setPriorApprovalsProvider((action, context) =>
+      this.patternTracker.getConsecutiveApprovals(action, context ?? {}),
+    );
     this.styleProfileStore = config.styleProfileStore ?? null;
     this.styleScoreThreshold = config.styleScoreThreshold ?? 70;
     this.documentContext = config.documentContext ?? null;
@@ -3303,7 +3306,7 @@ export class OrchestratorImpl implements Orchestrator {
       // If boundaries triggered, force approval regardless of autonomy tier
       const decision = boundaryEscalation
         ? 'requires_approval' as const
-        : this.autonomy.decide(actionType);
+        : this.autonomy.decide(actionType, tc.arguments);
 
       const agentAction: AgentAction = {
         id: nanoid(),

@@ -17,6 +17,7 @@ import { AnomalyDetector } from './security/anomaly-detector.js';
 import { ServiceRegistry } from './services/registry.js';
 import { GatewayTransport } from './ipc/transport.js';
 import { validateAndExecute } from './ipc/validator.js';
+import type { AutonomyEvaluationHooks } from './ipc/validator.js';
 import { createActionLifecycleStore } from '@semblance/kernel';
 import { ReminderAdapter } from './services/reminder-adapter.js';
 import { WebSearchAdapterFactory } from './services/web-search-factory.js';
@@ -44,6 +45,8 @@ export interface GatewayConfig {
   rateLimiter?: ConstructorParameters<typeof RateLimiter>[0];
   /** Anomaly detector configuration overrides. */
   anomalyDetector?: ConstructorParameters<typeof AnomalyDetector>[0];
+  /** Optional autonomy hooks wired after Core initializes. */
+  autonomyHooks?: import('./ipc/validator.js').AutonomyEvaluationHooks;
 }
 
 export class Gateway {
@@ -60,9 +63,18 @@ export class Gateway {
   private serviceRegistry: ServiceRegistry | null = null;
   private oauthTokenManager: OAuthTokenManager | null = null;
   private config: GatewayConfig;
+  private autonomyHooks: AutonomyEvaluationHooks = {};
 
   constructor(config?: GatewayConfig) {
     this.config = config ?? {};
+    this.autonomyHooks = config?.autonomyHooks ?? {};
+  }
+
+  /**
+   * Wire autonomy tier and per-capability approval lookups after Core is ready.
+   */
+  setAutonomyHooks(hooks: AutonomyEvaluationHooks): void {
+    this.autonomyHooks = hooks;
   }
 
   /**
@@ -252,6 +264,8 @@ export class Gateway {
           anomalyDetector: this.anomalyDetector!,
           serviceRegistry: this.serviceRegistry!,
           actionLifecycleStore: this.actionLifecycleStore!,
+          getAutonomyTier: this.autonomyHooks.getAutonomyTier,
+          getPriorApprovalsForCapability: this.autonomyHooks.getPriorApprovalsForCapability,
         });
       },
       onError: (error: Error) => {
@@ -459,7 +473,7 @@ export { WebFetchAdapter } from './services/web-fetch-adapter.js';
 export type { SearchProvider, WebSearchFactoryConfig } from './services/web-search-factory.js';
 export type { ServiceAdapter } from './services/types.js';
 export type { TransportConfig } from './ipc/transport.js';
-export type { ValidatorDeps } from './ipc/validator.js';
+export type { ValidatorDeps, AutonomyEvaluationHooks } from './ipc/validator.js';
 export type { ServiceCredential, ServiceCredentialInput, ConnectionTestResult, ProviderPreset } from './credentials/types.js';
 export type { EmailMessage, EmailAddress, EmailFetchParams, EmailSendParams } from './services/email/types.js';
 export type { CalendarEvent, CalendarInfo, CalendarFetchParams, CalendarCreateParams, CalendarUpdateParams } from './services/calendar/types.js';

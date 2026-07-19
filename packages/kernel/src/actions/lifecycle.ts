@@ -16,6 +16,7 @@ export interface ExecuteAuditedActionParams {
   readonly payloadHash: string;
   readonly auditCorrelationId: string;
   readonly autoApprove?: boolean;
+  readonly approvalReason?: string;
   readonly dispatchTimeoutMs?: number;
   readonly externalChecker?: ExternalConfirmationChecker;
   readonly logAuditPending: () => string;
@@ -175,6 +176,19 @@ export async function executeAuditedAction(
       params.store.updateRecord(redispatched);
       return dispatchAndExecute(redispatched, params);
     }
+    if (existing.state === 'proposed') {
+      return {
+        record: existing,
+        execution: {
+          success: false,
+          error: {
+            code: 'REQUIRES_APPROVAL',
+            message: existing.failureReason ?? params.approvalReason ?? 'Action requires user approval',
+          },
+          timedOut: false,
+        },
+      };
+    }
     if (existing.state === 'dispatched' || existing.state === 'approved') {
       return {
         record: existing,
@@ -190,6 +204,41 @@ export async function executeAuditedAction(
     }
   }
 
+  if (params.autoApprove === false) {
+    const actionId = randomUUID();
+    const auditPendingId = params.logAuditPending();
+    params.assertAuditPendingBeforeDispatch(auditPendingId);
+
+    let record = params.store.createAction({
+      actionId,
+      requestId: params.requestId,
+      actionType: params.actionType,
+      idempotencyKey: params.idempotencyKey,
+      auditCorrelationId: params.auditCorrelationId,
+      payloadHash: params.payloadHash,
+      initialState: 'proposed',
+    });
+
+    record = {
+      ...record,
+      auditPendingId,
+      failureReason: params.approvalReason ?? 'Action requires user approval',
+    };
+    params.store.updateRecord(record);
+
+    return {
+      record,
+      execution: {
+        success: false,
+        error: {
+          code: 'REQUIRES_APPROVAL',
+          message: params.approvalReason ?? 'Action requires user approval',
+        },
+        timedOut: false,
+      },
+    };
+  }
+
   const actionId = randomUUID();
   let record = params.store.createAction({
     actionId,
@@ -198,13 +247,8 @@ export async function executeAuditedAction(
     idempotencyKey: params.idempotencyKey,
     auditCorrelationId: params.auditCorrelationId,
     payloadHash: params.payloadHash,
-    initialState: params.autoApprove === false ? 'proposed' : 'approved',
+    initialState: 'approved',
   });
-
-  if (record.state === 'proposed') {
-    record = applyTransition(record, 'approve');
-    params.store.updateRecord(record);
-  }
 
   return dispatchAndExecute(record, params);
 }

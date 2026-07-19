@@ -63,6 +63,19 @@ export {
 export { createConsentStore, type ConsentStore, type ConsentReceipt } from './policy/consent-store.js';
 export { createCapabilityIssuer, type IssueCapabilityRequest } from './policy/capability-issuer.js';
 export {
+  AUTONOMY_CAPABILITY_MAP,
+  CAPABILITY_ACTION_TYPES,
+  evaluateAutonomyCapability,
+  extractActionDestination,
+  isCapabilityScopedAction,
+  capabilityEscalationWouldHelp,
+  type AutonomyTier,
+  type CapabilityActionType,
+  type CapabilityPolicy,
+  type EvaluateAutonomyCapabilityInput,
+  type AutonomyCapabilityEvaluation,
+} from './policy/autonomy-capability-map.js';
+export {
   createKernelIpcHandlers,
   type ProcessHelloRequest,
   type KernelIpcHandlers,
