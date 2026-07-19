@@ -570,6 +570,28 @@ importers:
         specifier: ^8.5.0
         version: 8.6.17
 
+  packages/sync:
+    dependencies:
+      '@semblance/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      better-sqlite3:
+        specifier: ^12.6.2
+        version: 12.6.2
+      zod:
+        specifier: ^3.22.0
+        version: 3.25.76
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: ^7.6.13
+        version: 7.6.13
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@25.3.0)(jiti@1.21.7)(jsdom@28.1.0(@noble/hashes@1.8.0))(terser@5.46.0)(tsx@4.21.0)
+
   packages/vault:
     dependencies:
       '@semblance/protocol':

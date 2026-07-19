@@ -45,6 +45,11 @@ import Database from 'better-sqlite3';
 import { nanoid } from 'nanoid';
 import { createSemblanceCore, type SemblanceCore, type ChatMessage } from '../../../core/index.js';
 import { bootstrapLocalVault, type LocalVaultBootstrap } from '../../../vault/src/index.js';
+import {
+  createSyncSecureStorageAdapter,
+  SovereigntyRootService,
+  type SovereigntyRootService as SyncRootService,
+} from '../../../sync/src/index.js';
 import { createLLMProvider, BitNetProvider, InferenceRouter } from '../../../core/llm/index.js';
 import type { NativeRuntimeBridge } from '../../../core/llm/native-bridge-types.js';
 import { getPlatform } from '../../../core/platform/index.js';
@@ -378,6 +383,7 @@ const pendingCallbacks = callbackProtocol.pendingCallbacks;
 
 let core: SemblanceCore | null = null;
 let localVault: LocalVaultBootstrap | null = null;
+let syncRootService: SyncRootService | null = null;
 let gateway: Gateway | null = null;
 
 function getCommerceTransport(): CommerceTransport {
@@ -1015,6 +1021,13 @@ async function handleInitialize(): Promise<unknown> {
   if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
   ensureExecutionDestinationStores();
   ensureCloudBudgetStore();
+
+  try {
+    await initializeSyncRoot(dataDir);
+  } catch (syncRootErr) {
+    console.error('[sidecar] Sovereignty root initialization failed:', syncRootErr);
+    syncRootService = null;
+  }
 
   // ──── STEP 1: Open preferences DB FIRST ────
   // Preferences (onboarding state, user name, autonomy tiers) are independent
@@ -5077,6 +5090,12 @@ async function handleShutdown(): Promise<unknown> {
     console.error('[sidecar] Local vault shut down');
   }
 
+  if (syncRootService) {
+    syncRootService.close();
+    syncRootService = null;
+    console.error('[sidecar] Sovereignty root shut down');
+  }
+
   if (gateway) {
     await gateway.stop();
     console.error('[sidecar] Gateway shut down');
@@ -6065,6 +6084,18 @@ async function runStyleExtraction(
 }
 
 // ─── Kernel entitlement helpers ───────────────────────────────────────────────
+
+async function initializeSyncRoot(sidecarDataDir: string): Promise<void> {
+  const keyStore = createFileKeyStore(join(sidecarDataDir, 'sync-keystore.json'));
+  syncRootService = await SovereigntyRootService.initialize({
+    dataDir: sidecarDataDir,
+    secureStorage: createSyncSecureStorageAdapter(keyStore),
+  });
+  const status = await syncRootService.getStatus();
+  console.error(
+    `[sidecar] Sovereignty root ready (rootId=${status.rootId}, epoch=${status.membershipEpoch}, devices=${status.activeDeviceCount})`,
+  );
+}
 
 async function initializeKernelEntitlement(sidecarDataDir: string): Promise<void> {
   const keyStore = createFileKeyStore(join(sidecarDataDir, 'entitlement-keystore.json'));
@@ -11140,6 +11171,73 @@ async function handleRequest(req: Request): Promise<void> {
           }
           const result = localVault.surface.deleteSource(deleteParams.sourceId);
           respond(id, { success: true, deletion: result });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'sync:root_status': {
+        if (!syncRootService) {
+          respondError(id, 'Sovereignty root not initialized');
+          break;
+        }
+        try {
+          const status = await syncRootService.getStatus();
+          const devices = syncRootService.listDevices(false);
+          respond(id, { status, devices });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'sync:add_device': {
+        if (!syncRootService) {
+          respondError(id, 'Sovereignty root not initialized');
+          break;
+        }
+        try {
+          const addParams = params as {
+            deviceId?: string;
+            devicePublicKey?: string;
+            authorizedByDeviceIds?: string[];
+          };
+          if (!addParams.deviceId || !addParams.devicePublicKey) {
+            respondError(id, 'deviceId and devicePublicKey are required');
+            break;
+          }
+          const result = await syncRootService.addDevice({
+            deviceId: addParams.deviceId,
+            devicePublicKey: addParams.devicePublicKey,
+            authorizedByDeviceIds: addParams.authorizedByDeviceIds ?? [],
+          });
+          respond(id, { success: true, result, status: await syncRootService.getStatus() });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'sync:revoke_device': {
+        if (!syncRootService) {
+          respondError(id, 'Sovereignty root not initialized');
+          break;
+        }
+        try {
+          const revokeParams = params as {
+            deviceId?: string;
+            authorizedByDeviceIds?: string[];
+          };
+          if (!revokeParams.deviceId) {
+            respondError(id, 'deviceId is required');
+            break;
+          }
+          const result = await syncRootService.revokeDevice({
+            deviceId: revokeParams.deviceId,
+            authorizedByDeviceIds: revokeParams.authorizedByDeviceIds ?? [],
+          });
+          respond(id, { success: true, result, status: await syncRootService.getStatus() });
         } catch (err) {
           respondError(id, (err as Error).message);
         }
