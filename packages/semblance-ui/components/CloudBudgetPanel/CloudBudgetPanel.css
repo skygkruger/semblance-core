@@ -1,0 +1,105 @@
+.cloud-budget-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.cloud-budget-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cloud-budget-panel__title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #A8B4C0;
+  letter-spacing: 0.02em;
+}
+
+.cloud-budget-panel__status {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.cloud-budget-panel__kill-switch {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #A8B4C0;
+  cursor: pointer;
+}
+
+.cloud-budget-panel__alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cloud-budget-panel__alert {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid;
+  background: rgba(176, 154, 138, 0.06);
+  font-size: 13px;
+}
+
+.cloud-budget-panel__meters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cloud-budget-panel__meter-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #8593A4;
+  margin-bottom: 6px;
+}
+
+.cloud-budget-panel__meter-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.cloud-budget-panel__meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+
+.cloud-budget-panel__limits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.cloud-budget-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #8593A4;
+}
+
+.cloud-budget-panel__field input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #A8B4C0;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.cloud-budget-panel__note {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}

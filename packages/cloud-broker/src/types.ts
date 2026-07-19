@@ -4,6 +4,8 @@ import type {
   ExecutionDestinationPolicyInput,
 } from '@semblance/kernel';
 import type { DisclosureReceipt } from './disclosure-receipt.js';
+import type { ConfidentialProofBundle } from '../../proof/src/confidential-proof-bundle.js';
+import type { VoucherCoarseClass } from './confidential/voucher-wallet.js';
 
 export type PolicyDecider = typeof decideExecutionDestination;
 
@@ -28,11 +30,17 @@ export interface ExecutionRequest {
   readonly model?: string;
   /** Self-hosted node id when policy selects self_hosted. */
   readonly selfHostedNodeId?: string;
+  /** Pre-fetched attestation evidence for confidential destination (avoids broker fetch). */
+  readonly attestationEvidence?: unknown;
+  /** Maximum minimized plaintext bytes permitted for confidential disclosure. */
+  readonly maxDisclosureBytes?: number;
+  /** Voucher coarse class for confidential budget/pricing checks. */
+  readonly modelClass?: VoucherCoarseClass;
 }
 
 export interface ExecutionSuccessResult {
   readonly status: 'success';
-  readonly destination: ExecutionDestinationDecision['destination'];
+  readonly destination: Exclude<ExecutionDestinationDecision['destination'], 'ask' | 'reject'>;
   readonly content: string;
   readonly tokensUsed: { prompt: number; completion: number; total: number };
   readonly model: string;
@@ -43,6 +51,7 @@ export interface ExecutionSuccessResult {
     readonly tokensAfter: number;
   };
   readonly disclosureReceipt?: DisclosureReceipt;
+  readonly confidentialProof?: ConfidentialProofBundle;
 }
 
 export interface ExecutionAskResult {
@@ -98,9 +107,43 @@ export interface OpaqueGatewayResponse {
   readonly disclosureReceipt: DisclosureReceipt;
 }
 
+export interface ConfidentialGatewayRequest {
+  readonly requestId: string;
+  readonly destination: 'confidential';
+  readonly deviceEphemeralPublicKey: string;
+  readonly ciphertext: string;
+  readonly iv: string;
+  readonly authTag: string;
+  readonly promptContentHash: string;
+  readonly model: string;
+  readonly maxTokens: number;
+  readonly subagentId: string;
+  readonly domain: string;
+  readonly taskType: string;
+  readonly voucher: {
+    readonly spentDigest: string;
+    readonly coarseClass: string;
+    readonly quantity: number;
+    readonly billingPeriod: string;
+    readonly signature: string;
+    readonly issuerKeyId: string;
+  };
+}
+
+export interface ConfidentialGatewayResponse {
+  readonly ciphertext: string;
+  readonly iv: string;
+  readonly authTag: string;
+  readonly tokensUsed: { prompt: number; completion: number; total: number };
+  readonly model: string;
+  readonly provider: string;
+  readonly responseContentHash: string;
+}
+
 /** Injected transport — Broker never opens sockets. */
 export interface GatewayOpaqueTransport {
   execute(request: OpaqueGatewayRequest): Promise<OpaqueGatewayResponse>;
+  executeConfidential(request: ConfidentialGatewayRequest): Promise<ConfidentialGatewayResponse>;
 }
 
 export interface LocalExecutionTransport {

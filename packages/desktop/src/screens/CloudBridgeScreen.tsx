@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { SkeletonCard } from '@semblance/ui';
+import { CloudBudgetPanel } from '@semblance/ui';
 import {
   cloudBridgeGetProviders,
   cloudBridgeAddProvider,
@@ -13,6 +14,9 @@ import {
   executionGetDestinationPolicy,
   executionSetDestinationPolicy,
   executionListReceipts,
+  cloudBudgetGet,
+  cloudBudgetSet,
+  cloudBudgetSetDisabled,
 } from '../ipc/commands';
 import type {
   CloudBridgeProviderIPC,
@@ -22,6 +26,8 @@ import type {
   ExecutionRunReceiptIPC,
   CapabilityDestinationPreference,
   CapabilityModelClass,
+  CloudBudgetDocumentIPC,
+  CloudBudgetSummaryIPC,
 } from '../ipc/commands';
 import { ContentBracket } from '../components/ContentBracket';
 import { GhostSprite } from '../components/GhostSprite';
@@ -98,6 +104,8 @@ export function CloudBridgeScreen() {
   const [policy, setPolicy] = useState<CloudBridgePolicyIPC | null>(null);
   const [destinationPolicy, setDestinationPolicy] = useState<ExecutionDestinationPolicyIPC | null>(null);
   const [receipts, setReceipts] = useState<ExecutionRunReceiptIPC[]>([]);
+  const [cloudBudget, setCloudBudget] = useState<CloudBudgetDocumentIPC | null>(null);
+  const [cloudBudgetSummary, setCloudBudgetSummary] = useState<CloudBudgetSummaryIPC | null>(null);
   const [loading, setLoading] = useState(true);
   const [addingProvider, setAddingProvider] = useState(false);
   const [selectedProviderId, setSelectedProviderId] = useState('anthropic');
@@ -108,16 +116,21 @@ export function CloudBridgeScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [provs, pol, destPol, receiptList] = await Promise.all([
+      const [provs, pol, destPol, receiptList, budgetState] = await Promise.all([
         cloudBridgeGetProviders(),
         cloudBridgeGetPolicy(),
         executionGetDestinationPolicy(),
         executionListReceipts(12),
+        cloudBudgetGet().catch(() => null),
       ]);
       setProviders(Array.isArray(provs) ? provs : []);
       setPolicy(pol && typeof pol === 'object' && !Array.isArray(pol) && 'mode' in pol ? pol : null);
       setDestinationPolicy(destPol && typeof destPol === 'object' ? destPol : null);
       setReceipts(Array.isArray(receiptList?.receipts) ? receiptList.receipts : []);
+      if (budgetState?.budget) {
+        setCloudBudget(budgetState.budget);
+        setCloudBudgetSummary(budgetState.summary);
+      }
     } catch {
       // Sidecar may not be initialized yet
     } finally {
@@ -126,6 +139,43 @@ export function CloudBridgeScreen() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  const persistCloudBudget = async (updates: Partial<CloudBudgetDocumentIPC>) => {
+    const base = cloudBudget ?? {
+      schemaVersion: 1 as const,
+      perTaskEstimateCents: 15,
+      dailyHardLimitCents: 500,
+      monthlyHardLimitCents: 5000,
+      allowedDestinations: ['confidential'],
+      allowedModelClasses: ['inference-small', 'inference-standard', 'inference-large'],
+      cloudDisabled: false,
+      alertThresholdPercent: 80,
+      dailySpentCents: 0,
+      monthlySpentCents: 0,
+      spendDayKey: new Date().toISOString().slice(0, 10),
+      spendMonthKey: new Date().toISOString().slice(0, 7),
+      updatedAt: new Date().toISOString(),
+    };
+    const next = { ...base, ...updates };
+    setCloudBudget(next);
+    const saved = await cloudBudgetSet(next).catch(() => null);
+    if (saved?.budget) {
+      setCloudBudget(saved.budget);
+      setCloudBudgetSummary(saved.summary);
+    }
+  };
+
+  const handleCloudDisableChange = async (disabled: boolean) => {
+    setCloudBudget((current) => current ? { ...current, cloudDisabled: disabled } : current);
+    const saved = await cloudBudgetSetDisabled(disabled).catch(() => null);
+    if (saved?.budget) {
+      setCloudBudget(saved.budget);
+      setCloudBudgetSummary(saved.summary);
+    }
+    if (disabled && destinationPolicy) {
+      await persistDestinationPolicy({ localOnlyKillSwitch: true });
+    }
+  };
 
   const persistDestinationPolicy = async (updates: Partial<ExecutionDestinationPolicyIPC>) => {
     const base = destinationPolicy ?? {
@@ -235,7 +285,35 @@ export function CloudBridgeScreen() {
   const connectedCount = providers.filter(p => p.status === 'connected').length;
   const routingMode = effectivePolicy.mode;
   const isActive = routingMode !== 'off' && connectedCount > 0;
-  const killSwitchActive = effectiveDestinationPolicy.localOnlyKillSwitch;
+  const killSwitchActive = effectiveDestinationPolicy.localOnlyKillSwitch
+    || cloudBudget?.cloudDisabled === true;
+
+  const effectiveCloudBudget = cloudBudget ?? {
+    schemaVersion: 1 as const,
+    perTaskEstimateCents: 15,
+    dailyHardLimitCents: 500,
+    monthlyHardLimitCents: 5000,
+    allowedDestinations: ['confidential'],
+    allowedModelClasses: ['inference-small', 'inference-standard', 'inference-large'],
+    cloudDisabled: false,
+    alertThresholdPercent: 80,
+    dailySpentCents: 0,
+    monthlySpentCents: 0,
+    spendDayKey: new Date().toISOString().slice(0, 10),
+    spendMonthKey: new Date().toISOString().slice(0, 7),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const effectiveCloudBudgetSummary = cloudBudgetSummary ?? {
+    dailySpentCents: effectiveCloudBudget.dailySpentCents,
+    monthlySpentCents: effectiveCloudBudget.monthlySpentCents,
+    dailyHardLimitCents: effectiveCloudBudget.dailyHardLimitCents,
+    monthlyHardLimitCents: effectiveCloudBudget.monthlyHardLimitCents,
+    perTaskEstimateCents: effectiveCloudBudget.perTaskEstimateCents,
+    cloudDisabled: effectiveCloudBudget.cloudDisabled,
+    alertThresholdPercent: effectiveCloudBudget.alertThresholdPercent,
+    alerts: [],
+  };
 
   if (loading) {
     return (
@@ -275,6 +353,25 @@ export function CloudBridgeScreen() {
                 Force all execution to stay on this device (blocks remote destinations)
               </span>
             </div>
+
+            <SectionDivider />
+
+            <CloudBudgetPanel
+              limits={{
+                perTaskEstimateCents: effectiveCloudBudget.perTaskEstimateCents,
+                dailyHardLimitCents: effectiveCloudBudget.dailyHardLimitCents,
+                monthlyHardLimitCents: effectiveCloudBudget.monthlyHardLimitCents,
+                alertThresholdPercent: effectiveCloudBudget.alertThresholdPercent,
+                cloudDisabled: effectiveCloudBudget.cloudDisabled,
+              }}
+              summary={{
+                dailySpentCents: effectiveCloudBudgetSummary.dailySpentCents,
+                monthlySpentCents: effectiveCloudBudgetSummary.monthlySpentCents,
+                alerts: effectiveCloudBudgetSummary.alerts,
+              }}
+              onLimitsChange={(updates) => persistCloudBudget(updates)}
+              onCloudDisableChange={handleCloudDisableChange}
+            />
 
             <SectionDivider />
 

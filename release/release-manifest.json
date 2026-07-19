@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "releaseId": "byo-self-hosted-execution-2026-07-18",
-  "generatedAt": "2026-07-19T05:35:13Z",
+  "releaseId": "attested-confidential-compute-2026-07-19",
+  "generatedAt": "2026-07-19T08:32:00Z",
   "repositories": {
     "core": {
-      "sourceCommit": "939e86bcc06fe6ee16f049a42da0e7ece113271e",
-      "sourceTreeHash": "f6279986a4c7fd6017d1588765a2395eb5b0e755"
+      "sourceCommit": "b940f63825068cbf86c1904b6f1ab2a15e953d1e",
+      "sourceTreeHash": "5c28be2c71dfd418807d3009752fc0957c0f4196"
     },
     "representative": {
       "sourceCommit": "89405cdf94a8e1b5ff7c8208af79148a68a6ea18",
@@ -15,8 +15,8 @@
       "extensionManifestHash": "8ff4eb6ec9a66afa0fa080daf63b7c1f6365db067437c43db28f5fd117f073be"
     },
     "website": {
-      "sourceCommit": "08ecca3a87809f026418edd62505f76ae3b3f146",
-      "sourceTreeHash": "1db15f82c1d80c9386c206285c8f0a9e0dcd09d2"
+      "sourceCommit": "0c0d0789947b229e24b22c500d3889e5a5697e2a",
+      "sourceTreeHash": "6b84973d48230c60e18e4dbc66c017a3bbd58604"
     },
     "semblanceNode": {
       "repositoryUrl": "https://github.com/skygkruger/semblance-node",
@@ -656,6 +656,54 @@
       "requiredForStates": [
         "RuntimeVerified"
       ]
+    },
+    {
+      "id": "slice-9-exit-gate",
+      "repository": "core",
+      "path": "release/evidence/slice-9/slice-9-exit-gate.json",
+      "sha256": "005e69392e9b2e850f01f71622ef594bef37458844c8d1d98fa50ede9444a097",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-9-exit-gate-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-9/exit-gate.txt",
+      "sha256": "58238d489ecee4c97352848533dab0991fc918c55910fcecc099d1369b1bc428",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-9-proof-receipt-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-9/proof-receipt-tests.txt",
+      "sha256": "78c8fd896749afdcfcd06efd9f801ad94632b5a9252ef8dee47450d6ec761a01",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-9-cloud-budget-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-9/cloud-budget-tests.txt",
+      "sha256": "a3b70fea360b04c88b1d6a98fa75bdca5bd90db07f323209e6bdecca4559a4f6",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-9-confidential-broker-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-9/confidential-broker-tests.txt",
+      "sha256": "900b88a14a7a21f5b8ed60b8680bdcb0cea30ef3fa866208704b8b69aed4b938",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
     }
   ],
   "commerce": {
@@ -681,7 +729,8 @@
     5,
     6,
     7,
-    8
+    8,
+    9
   ],
   "features": [
     {
@@ -917,6 +966,30 @@
         "slice-8-cloud-broker-tests",
         "slice-8-protocol-execution-v1",
         "slice-8-semblance-node-conformance"
+      ],
+      "protocolVersions": {
+        "releaseEvidence": 1,
+        "execution": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": null
+    },
+    {
+      "id": "attested-confidential-compute",
+      "name": "Attested confidential compute",
+      "repository": "core",
+      "state": "AdversariallyVerified",
+      "usesDigitalRepresentative": false,
+      "signedArtifactNames": [],
+      "evidenceIds": [
+        "slice-9-exit-gate",
+        "slice-9-exit-gate-tests",
+        "slice-9-proof-receipt-tests",
+        "slice-9-cloud-budget-tests",
+        "slice-9-confidential-broker-tests"
       ],
       "protocolVersions": {
         "releaseEvidence": 1,

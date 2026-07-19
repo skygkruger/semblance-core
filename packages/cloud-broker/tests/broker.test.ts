@@ -77,6 +77,9 @@ describe('CloudBroker', () => {
           tokensUsed: { prompt: 12, completion: 18, total: 30 },
         },
       })),
+      executeConfidential: vi.fn(async () => {
+        throw new Error('executeConfidential not expected in this test');
+      }),
     };
   });
 

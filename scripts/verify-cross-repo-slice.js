@@ -203,11 +203,13 @@ function verifySlice8Completion(manifest, coreRoot) {
   const errors = [];
   const slice8Complete = Array.isArray(manifest.completedSlices)
     && manifest.completedSlices.includes(8);
+  const slice9Complete = Array.isArray(manifest.completedSlices)
+    && manifest.completedSlices.includes(9);
   if (!slice8Complete) {
     return errors;
   }
 
-  if (manifest.releaseId !== 'byo-self-hosted-execution-2026-07-18') {
+  if (!slice9Complete && manifest.releaseId !== 'byo-self-hosted-execution-2026-07-18') {
     errors.push(error(
       'SLICE_8_RELEASE_ID_MISMATCH',
       'releaseId must be byo-self-hosted-execution-2026-07-18 when Slice 8 is complete',
@@ -253,6 +255,59 @@ function verifySlice8Completion(manifest, coreRoot) {
       errors.push(error(
         'SLICE_8_EVIDENCE_HASH_MISMATCH',
         `Slice 8 evidence ${evidenceId} hash does not match manifest`,
+        `evidence.${evidenceId}`,
+      ));
+    }
+  }
+
+  return errors;
+}
+
+function verifySlice9Completion(manifest, coreRoot) {
+  const errors = [];
+  const slice9Complete = Array.isArray(manifest.completedSlices)
+    && manifest.completedSlices.includes(9);
+  if (!slice9Complete) {
+    return errors;
+  }
+
+  if (manifest.releaseId !== 'attested-confidential-compute-2026-07-19') {
+    errors.push(error(
+      'SLICE_9_RELEASE_ID_MISMATCH',
+      'releaseId must be attested-confidential-compute-2026-07-19 when Slice 9 is complete',
+      'releaseId',
+    ));
+  }
+
+  const requiredEvidenceIds = [
+    'slice-9-exit-gate',
+    'slice-9-exit-gate-tests',
+    'slice-9-proof-receipt-tests',
+    'slice-9-cloud-budget-tests',
+    'slice-9-confidential-broker-tests',
+  ];
+
+  for (const evidenceId of requiredEvidenceIds) {
+    const entry = (manifest.evidence ?? []).find((item) => item.id === evidenceId);
+    if (!entry) {
+      errors.push(error(
+        'SLICE_9_EVIDENCE_MISSING',
+        `Slice 9 evidence entry missing: ${evidenceId}`,
+        `evidence.${evidenceId}`,
+      ));
+      continue;
+    }
+    const absolute = join(coreRoot, entry.path);
+    if (!existsSync(absolute)) {
+      errors.push(error(
+        'SLICE_9_EVIDENCE_MISSING',
+        `Slice 9 evidence file missing: ${entry.path}`,
+        entry.path,
+      ));
+    } else if (sha256File(absolute) !== entry.sha256) {
+      errors.push(error(
+        'SLICE_9_EVIDENCE_HASH_MISMATCH',
+        `Slice 9 evidence ${evidenceId} hash does not match manifest`,
         `evidence.${evidenceId}`,
       ));
     }
@@ -759,6 +814,7 @@ function verifyCrossRepoSlice(options) {
   errors.push(...verifyMigrationEvidence(manifest, representativeRoot));
   errors.push(...verifyCommerceFreeze(manifest, representativeRoot, coreRoot));
   errors.push(...verifySlice8Completion(manifest, coreRoot));
+  errors.push(...verifySlice9Completion(manifest, coreRoot));
 
   return { valid: errors.length === 0, errors };
 }
@@ -829,6 +885,7 @@ function runCli() {
 module.exports = {
   verifyCrossRepoSlice,
   MIGRATION_EVIDENCE_IDS,
+  verifySlice9Completion,
 };
 
 if (require.main === module) {

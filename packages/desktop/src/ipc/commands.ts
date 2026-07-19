@@ -1657,3 +1657,52 @@ export function executionSetDestinationPolicy(
 export function executionListReceipts(limit = 20): Promise<{ receipts: ExecutionRunReceiptIPC[] }> {
   return sidecarCall<{ receipts: ExecutionRunReceiptIPC[] }>('execution:list_receipts', { limit });
 }
+
+export interface CloudBudgetDocumentIPC {
+  schemaVersion: 1;
+  perTaskEstimateCents: number;
+  dailyHardLimitCents: number;
+  monthlyHardLimitCents: number;
+  allowedDestinations: readonly string[];
+  allowedModelClasses: readonly string[];
+  cloudDisabled: boolean;
+  alertThresholdPercent: number;
+  dailySpentCents: number;
+  monthlySpentCents: number;
+  spendDayKey: string;
+  spendMonthKey: string;
+  updatedAt: string;
+}
+
+export interface CloudBudgetSummaryIPC {
+  dailySpentCents: number;
+  monthlySpentCents: number;
+  dailyHardLimitCents: number;
+  monthlyHardLimitCents: number;
+  perTaskEstimateCents: number;
+  cloudDisabled: boolean;
+  alertThresholdPercent: number;
+  alerts: readonly string[];
+}
+
+export function cloudBudgetGet(): Promise<{ budget: CloudBudgetDocumentIPC; summary: CloudBudgetSummaryIPC }> {
+  return sidecarCall<{ budget: CloudBudgetDocumentIPC; summary: CloudBudgetSummaryIPC }>('cloud_budget:get');
+}
+
+export function cloudBudgetSet(
+  budget: Partial<CloudBudgetDocumentIPC>,
+): Promise<{ success: boolean; budget: CloudBudgetDocumentIPC; summary: CloudBudgetSummaryIPC }> {
+  return sidecarCall<{ success: boolean; budget: CloudBudgetDocumentIPC; summary: CloudBudgetSummaryIPC }>(
+    'cloud_budget:set',
+    budget as unknown as Record<string, unknown>,
+  );
+}
+
+export function cloudBudgetSetDisabled(
+  disabled: boolean,
+): Promise<{ success: boolean; budget: CloudBudgetDocumentIPC; summary: CloudBudgetSummaryIPC }> {
+  return sidecarCall<{ success: boolean; budget: CloudBudgetDocumentIPC; summary: CloudBudgetSummaryIPC }>(
+    'cloud_budget:set_disabled',
+    { disabled },
+  );
+}

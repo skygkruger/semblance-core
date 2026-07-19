@@ -1,0 +1,56 @@
+
+🔬 SIDECAR INTEGRATION SMOKE TEST
+
+Starting sidecar...
+Sending initialize (may take up to 3 minutes for model loading)...
+  ❌ initialize: Timeout waiting for response to initialize (180000ms)
+
+📋 Sidecar stderr:
+[sidecar] No .env file found in: /Users/veridiansynthetics/semblance-core/packages/desktop/src-tauri/sidecar/.env, /Users/veridiansynthetics/.semblance/.env, /Users/veridiansynthetics/semblance-core/.env, /Users/veridiansynthetics/semblance-core/.env
+[sidecar] SEMBLANCE_GOOGLE_CLIENT_ID: NOT SET
+[sidecar] SEMBLANCE_SLACK_CLIENT_ID: NOT SET
+[sidecar] Bridge process started, waiting for initialize command
+(node:33850) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[sidecar] Preferences DB ready
+[sidecar] Reservation entitlement split: migrated
+[sidecar] ConversationManager ready
+[sidecar] Creating Gateway...
+[sidecar] Gateway created, calling start()...
+[sidecar] Gateway started
+[sidecar] Documents DB ready (knowledge/documents.db)
+[sidecar] Creating SemblanceCore...
+[sidecar] SemblanceCore created, calling initialize...
+[SemblanceCore] Opening core.db...
+[SemblanceCore] ModelManager ready, checking LLM availability...
+[sidecar] NativeRuntime channel timed out (5s)
+[SemblanceCore] LLM availability check took 5003ms, available: false
+[SemblanceCore] Ollama is not running. LLM features will be unavailable until Ollama starts.
+[SemblanceCore] Chat model selected: qwen3-4b-instruct-q4_k_m
+[LanceDB] Connecting to /Users/veridiansynthetics/.semblance/data/knowledge
+[LanceDB] Connected, listing tables
+[LanceDB] Tables: [ 'document_chunks' ]
+[LanceDB] Table opened: document_chunks
+[SemblanceCore] Knowledge graph initialized
+[SemblanceCore] Connecting IPC client...
+[SocketTransport] Connecting to /Users/veridiansynthetics/.semblance/gateway.sock...
+[SocketTransport] Connected to /Users/veridiansynthetics/.semblance/gateway.sock
+[SemblanceCore] Connected to Gateway via IPC (2ms)
+[SemblanceCore] IPC step complete, creating orchestrator...
+[SemblanceCore] Creating v2 coordinator agent...
+[SemblanceCore] Hardware tier: performance (16384MB RAM)
+[SemblanceCore] v2 Coordinator agent initialized
+[SemblanceCore] Loading extensions...
+[SemblanceCore] Extensions loaded in 2ms
+[SemblanceCore] All subsystems initialized
+[sidecar] Core initialized
+[sidecar] ConversationIndexer initialized
+[sidecar] IntentManager initialized
+[sidecar] WeatherService wired into orchestrator
+[sidecar] Prompt config wired: name=Wren, services=0, docs=4
+[sidecar] AlterEgoGuardrails initialized
+[sidecar] Email + Calendar adapters registered with Gateway
+[sidecar] ConnectorRouter wired to Gateway for 20 connectors
+[sidecar] Ollama not running — will use NativeRuntime CPU inference
+[sidecar] Loaded embedding model "nomic-embed-text-v1.5-q8_0" into NativeRuntime
+

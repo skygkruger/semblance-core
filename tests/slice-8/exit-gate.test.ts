@@ -137,6 +137,9 @@ describe('Slice 8 exit gate — CloudBroker destination routing', () => {
           tokensUsed: { prompt: 10, completion: 20, total: 30 },
         },
       })),
+      executeConfidential: vi.fn(async () => {
+        throw new Error('executeConfidential not expected in slice8 exit gate');
+      }),
     };
   });
 

@@ -281,4 +281,99 @@ describe('OpaqueExecutionTransport', () => {
     expect(result.disclosureReceipt.label).toBe('self_hosted');
     expect(adapter.execute).not.toHaveBeenCalled();
   });
+
+  it('executeConfidential rejects plaintext fields and transmits ciphertext only', async () => {
+    const confidentialFetch = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      expect(body.messages).toBeUndefined();
+      expect(body.content).toBeUndefined();
+      expect(body.prompt).toBeUndefined();
+      expect(body.plaintext).toBeUndefined();
+      expect(body.ciphertext).toBeTruthy();
+      return {
+        ok: true,
+        json: async () => ({
+          ciphertext: 'encrypted-response',
+          iv: Buffer.from('iv-bytes-xxx').toString('base64url'),
+          authTag: Buffer.from('tag-bytes-xx').toString('base64url'),
+          tokensUsed: { prompt: 2, completion: 3, total: 5 },
+          model: 'confidential-default',
+          provider: 'confidential',
+        }),
+      };
+    });
+
+    const transport = new OpaqueExecutionTransport({
+      adapter,
+      auditTrail,
+      fetchImpl: confidentialFetch as unknown as typeof fetch,
+      getConfidentialEndpoint: async () => ({
+        baseUrl: 'https://confidential.example.com',
+        authToken: 'secret',
+      }),
+    });
+
+    const result = await transport.executeConfidential({
+      requestId: 'req-conf-1',
+      destination: 'confidential',
+      deviceEphemeralPublicKey: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      ciphertext: 'task-ciphertext',
+      iv: Buffer.alloc(12, 1).toString('base64url'),
+      authTag: Buffer.alloc(16, 2).toString('base64url'),
+      promptContentHash: 'e'.repeat(64),
+      model: 'confidential-default',
+      maxTokens: 128,
+      subagentId: 'sub-conf',
+      domain: 'chat',
+      taskType: 'reasoning',
+      voucher: {
+        spentDigest: 'f'.repeat(64),
+        coarseClass: 'inference-standard',
+        quantity: 1,
+        billingPeriod: '2026-07',
+        signature: 'sig',
+        issuerKeyId: 'key-1',
+      },
+    });
+
+    expect(confidentialFetch).toHaveBeenCalledOnce();
+    expect(result.ciphertext).toBe('encrypted-response');
+    expect(result.provider).toBe('confidential');
+    expect(adapter.execute).not.toHaveBeenCalled();
+  });
+
+  it('executeConfidential throws when plaintext messages field is present', async () => {
+    const transport = new OpaqueExecutionTransport({
+      adapter,
+      auditTrail,
+      getConfidentialEndpoint: async () => ({
+        baseUrl: 'https://confidential.example.com',
+        authToken: 'secret',
+      }),
+    });
+
+    await expect(transport.executeConfidential({
+      requestId: 'req-conf-bad',
+      destination: 'confidential',
+      deviceEphemeralPublicKey: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      ciphertext: 'task-ciphertext',
+      iv: Buffer.alloc(12, 1).toString('base64url'),
+      authTag: Buffer.alloc(16, 2).toString('base64url'),
+      promptContentHash: 'f'.repeat(64),
+      model: 'confidential-default',
+      maxTokens: 128,
+      subagentId: 'sub-conf',
+      domain: 'chat',
+      taskType: 'reasoning',
+      voucher: {
+        spentDigest: 'a'.repeat(64),
+        coarseClass: 'inference-standard',
+        quantity: 1,
+        billingPeriod: '2026-07',
+        signature: 'sig',
+        issuerKeyId: 'key-1',
+      },
+      messages: [{ role: 'user', content: 'plaintext leak' }],
+    } as never)).rejects.toThrow('confidential_transport_plaintext_field:messages');
+  });
 });

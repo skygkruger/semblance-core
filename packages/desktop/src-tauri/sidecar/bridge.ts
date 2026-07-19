@@ -229,7 +229,10 @@ import {
   migrateLegacyOAuthTokensToKernel,
   createMemoryKeyStore,
   decideExecutionDestination,
+  createAttestationNonceGuard,
+  verifyAttestation,
   type ExecutionDestinationPolicyInput,
+  type AttestationNonceGuard,
 } from '../../../kernel/src/index.js';
 import {
   listWorkActions,
@@ -382,6 +385,13 @@ let executionDestinationPolicyStore: {
 let executionReceiptStore: ReturnType<
   typeof import('../../../cloud-broker/src/execution-receipt-store.js').createExecutionReceiptStore
 > | null = null;
+let cloudBudgetStore: {
+  get: () => import('@semblance/kernel').CloudBudgetDocument;
+  set: (next: import('@semblance/kernel').CloudBudgetDocument) => import('@semblance/kernel').CloudBudgetDocument;
+  getSummary: () => import('@semblance/kernel').CloudBudgetSpendSummary;
+  store: import('@semblance/kernel').CloudBudgetStore;
+} | null = null;
+const attestationNonceGuard: AttestationNonceGuard = createAttestationNonceGuard();
 let documentsDb: Database.Database | null = null;
 let emailIndexer: EmailIndexer | null = null;
 let calendarIndexer: CalendarIndexer | null = null;
@@ -915,6 +925,33 @@ function ensureExecutionDestinationStores(): void {
   (globalThis as any).__executionReceiptStore = executionReceiptStore;
 }
 
+function ensureCloudBudgetStore(): void {
+  if (cloudBudgetStore) {
+    return;
+  }
+
+  const {
+    CloudBudgetStore,
+    loadCloudBudgetDocument,
+    saveCloudBudgetDocument,
+  } = require('@semblance/kernel');
+  const cloudBudgetPath = join(dataDir, 'cloud-budget.json');
+  let cloudBudgetDocument = loadCloudBudgetDocument(cloudBudgetPath);
+  const store = new CloudBudgetStore(cloudBudgetDocument);
+
+  cloudBudgetStore = {
+    store,
+    get: () => store.getDocument(),
+    set: (next) => {
+      cloudBudgetDocument = saveCloudBudgetDocument(cloudBudgetPath, next);
+      store.setDocument(cloudBudgetDocument);
+      return store.getDocument();
+    },
+    getSummary: () => store.getSpendSummary(),
+  };
+  (globalThis as any).__cloudBudgetStore = cloudBudgetStore;
+}
+
 function recordExecutionRunReceipt(params: {
   requestId: string;
   domain: string;
@@ -953,6 +990,7 @@ async function handleInitialize(): Promise<unknown> {
   dataDir = join(homedir(), '.semblance', 'data');
   if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
   ensureExecutionDestinationStores();
+  ensureCloudBudgetStore();
 
   // ──── STEP 1: Open preferences DB FIRST ────
   // Preferences (onboarding state, user name, autonomy tiers) are independent
@@ -2378,7 +2416,22 @@ async function handleInitialize(): Promise<unknown> {
     };
 
     const { CloudBroker } = require('../../../cloud-broker/src/index.js');
+    const { AttestationClient } = require('../../../cloud-broker/src/confidential/attestation-client.js');
+    const { VoucherWallet } = require('../../../cloud-broker/src/confidential/voucher-wallet.js');
     const { OpaqueExecutionTransport } = require('../../../gateway/transports/opaque-execution.js');
+
+    const CONFIDENTIAL_WORKLOAD_ID = 'semblance-confidential-inference-v1';
+
+    const attestationClient = new AttestationClient({
+      fetcher: {
+        fetchEvidence: async () => {
+          throw new Error('Attestation evidence must be supplied inline via execution request params');
+        },
+      },
+      verifier: verifyAttestation,
+      expectedWorkloadId: CONFIDENTIAL_WORKLOAD_ID,
+      nonceGuard: attestationNonceGuard,
+    });
 
     const opaqueExecutionTransport = new OpaqueExecutionTransport({
       adapter: cloudAdapter,
@@ -2390,11 +2443,52 @@ async function handleInitialize(): Promise<unknown> {
         if (!baseUrl || !authToken) return null;
         return { nodeId, baseUrl, authToken };
       },
+      getConfidentialEndpoint: async () => {
+        const baseUrl = process.env['SEMBLANCE_CONFIDENTIAL_WORKLOAD_URL']
+          ?? await sidecarKeychainStore.get('semblance.confidential', 'base_url');
+        const authToken = process.env['SEMBLANCE_CONFIDENTIAL_WORKLOAD_TOKEN']
+          ?? await sidecarKeychainStore.get('semblance.confidential', 'auth_token');
+        if (!baseUrl || !authToken) return null;
+        return { baseUrl, authToken };
+      },
+      getObliviousRelayEndpoint: async () => {
+        const baseUrl = process.env['SEMBLANCE_PRIVACY_RELAY_URL']
+          ?? await sidecarKeychainStore.get('semblance.privacy-relay', 'base_url');
+        const authToken = process.env['SEMBLANCE_PRIVACY_RELAY_TOKEN']
+          ?? await sidecarKeychainStore.get('semblance.privacy-relay', 'auth_token');
+        if (!baseUrl || !authToken) return null;
+        return { baseUrl, authToken };
+      },
     });
+
+    const voucherWallet = new VoucherWallet();
+    const storedVouchersRaw = await sidecarKeychainStore.get('semblance.vouchers', 'batch');
+    if (storedVouchersRaw) {
+      try {
+        const parsed = JSON.parse(storedVouchersRaw) as Array<{
+          serial: string;
+          coarseClass: 'inference-small' | 'inference-standard' | 'inference-large';
+          quantity: number;
+          billingPeriod: string;
+          issuerKeyId: string;
+          signature: string;
+        }>;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          voucherWallet.addBatch(parsed);
+        }
+      } catch {
+        console.error('[sidecar] Failed to load voucher batch from keychain');
+      }
+    }
+
+    ensureCloudBudgetStore();
 
     const cloudBroker = new CloudBroker({
       policyDecider: decideExecutionDestination,
       gatewayTransport: opaqueExecutionTransport,
+      attestationClient,
+      voucherWallet,
+      cloudBudgetStore: cloudBudgetStore?.store,
       localTransport: {
         execute: async (localParams: {
           messages: Array<{ role: string; content: string }>;
@@ -2424,7 +2518,9 @@ async function handleInitialize(): Promise<unknown> {
     });
 
     (globalThis as any).__cloudBroker = cloudBroker;
+    (globalThis as any).__voucherWallet = voucherWallet;
     ensureExecutionDestinationStores();
+  ensureCloudBudgetStore();
 
     console.error('[sidecar] Cloud Bridge initialized (mode: off — user must enable in Settings)');
   } catch (cloudBridgeErr) {
@@ -11929,6 +12025,30 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
+      case 'confidential:verify_attestation': {
+        try {
+          const verifyParams = params as {
+            evidence?: unknown;
+            expectedWorkloadId?: string;
+            expectedPolicyVersion?: string;
+          };
+          if (typeof verifyParams.expectedWorkloadId !== 'string'
+            || verifyParams.expectedWorkloadId.trim().length === 0) {
+            respondError(id, 'expectedWorkloadId is required');
+            break;
+          }
+          const result = verifyAttestation(verifyParams.evidence, {
+            expectedWorkloadId: verifyParams.expectedWorkloadId,
+            expectedPolicyVersion: verifyParams.expectedPolicyVersion,
+            nonceGuard: attestationNonceGuard,
+          });
+          respond(id, result);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
       case 'execution:decide_destination': {
         try {
           const decision = decideExecutionDestination(params as ExecutionDestinationPolicyInput);
@@ -11941,6 +12061,7 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'execution:get_destination_policy': {
         ensureExecutionDestinationStores();
+        ensureCloudBudgetStore();
         const policyStore = executionDestinationPolicyStore;
         if (!policyStore) {
           respondError(id, 'Execution destination policy store not initialized');
@@ -11952,6 +12073,7 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'execution:set_destination_policy': {
         ensureExecutionDestinationStores();
+        ensureCloudBudgetStore();
         const policyStore = executionDestinationPolicyStore;
         if (!policyStore) {
           respondError(id, 'Execution destination policy store not initialized');
@@ -11965,6 +12087,7 @@ async function handleRequest(req: Request): Promise<void> {
 
       case 'execution:list_receipts': {
         ensureExecutionDestinationStores();
+        ensureCloudBudgetStore();
         if (!executionReceiptStore) {
           respondError(id, 'Execution receipt store not initialized');
           break;
@@ -11972,6 +12095,106 @@ async function handleRequest(req: Request): Promise<void> {
         const listParams = params as { limit?: number };
         const limit = typeof listParams.limit === 'number' ? listParams.limit : 20;
         respond(id, { receipts: executionReceiptStore.listRecent(limit) });
+        break;
+      }
+
+      case 'cloud_budget:get': {
+        ensureCloudBudgetStore();
+        if (!cloudBudgetStore) {
+          respondError(id, 'Cloud budget store not initialized');
+          break;
+        }
+        respond(id, {
+          budget: cloudBudgetStore.get(),
+          summary: cloudBudgetStore.getSummary(),
+        });
+        break;
+      }
+
+      case 'cloud_budget:set': {
+        ensureCloudBudgetStore();
+        if (!cloudBudgetStore) {
+          respondError(id, 'Cloud budget store not initialized');
+          break;
+        }
+        const { normalizeCloudBudgetDocument } = require('@semblance/kernel');
+        const nextBudget = cloudBudgetStore.set(normalizeCloudBudgetDocument(params));
+        respond(id, {
+          success: true,
+          budget: nextBudget,
+          summary: cloudBudgetStore.getSummary(),
+        });
+        break;
+      }
+
+      case 'cloud_budget:set_disabled': {
+        ensureCloudBudgetStore();
+        if (!cloudBudgetStore) {
+          respondError(id, 'Cloud budget store not initialized');
+          break;
+        }
+        const disabledParams = params as { disabled?: boolean };
+        const disabled = disabledParams.disabled === true;
+        const nextBudget = cloudBudgetStore.store.setCloudDisabled(disabled);
+        cloudBudgetStore.set(nextBudget);
+        respond(id, {
+          success: true,
+          budget: cloudBudgetStore.get(),
+          summary: cloudBudgetStore.getSummary(),
+        });
+        break;
+      }
+
+      case 'confidential:execute': {
+        const broker = (globalThis as any).__cloudBroker;
+        if (!broker) {
+          respondError(id, 'Cloud Broker not initialized');
+          break;
+        }
+        try {
+          ensureExecutionDestinationStores();
+          ensureCloudBudgetStore();
+          const runParams = params as {
+            requestId?: string;
+            domain?: string;
+            taskType?: string;
+            attestationEvidence?: unknown;
+            maxDisclosureBytes?: number;
+            policyInput?: ExecutionDestinationPolicyInput;
+          };
+          const { nanoid } = require('nanoid');
+          const requestId = runParams.requestId ?? nanoid();
+          const policyInput: ExecutionDestinationPolicyInput = runParams.policyInput ?? {
+            sensitivity: 20,
+            localFeasibility: false,
+            destinationTrust: {
+              byo: 'none',
+              selfHosted: 'none',
+              confidential: 'attested',
+            },
+            userPreference: 'confidential',
+            disclosureCeiling: 80,
+            attestationAvailable: true,
+            localOnlyKillSwitch: false,
+            explicitConsent: true,
+          };
+          const result = await broker.execute({
+            ...params,
+            requestId,
+            policyInput,
+            attestationEvidence: runParams.attestationEvidence,
+            maxDisclosureBytes: runParams.maxDisclosureBytes,
+          });
+          recordExecutionRunReceipt({
+            requestId,
+            domain: runParams.domain ?? 'chat',
+            taskType: runParams.taskType ?? 'reasoning',
+            result,
+          });
+          respond(id, result);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
         break;
       }
 
@@ -11983,6 +12206,7 @@ async function handleRequest(req: Request): Promise<void> {
         }
         try {
           ensureExecutionDestinationStores();
+          ensureCloudBudgetStore();
           const runParams = params as {
             requestId?: string;
             domain?: string;

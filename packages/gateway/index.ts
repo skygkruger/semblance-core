@@ -527,11 +527,27 @@ export { gatewayFetch, gatewayHttpsGet } from './security/gateway-network.js';
 export {
   OpaqueExecutionTransport,
   opaqueExecutionRequestSchema,
+  confidentialExecutionRequestSchema,
   type OpaqueExecutionRequest,
   type OpaqueExecutionResponse,
+  type ConfidentialExecutionRequest,
+  type ConfidentialExecutionResponse,
+  type ConfidentialWorkloadEndpoint,
   type OpaqueExecutionTransportDeps,
   type SelfHostedNodeCredential,
 } from './transports/opaque-execution.js';
+export {
+  ObliviousRelayTransport,
+  assertRelayLogHasNoAccountLinkage,
+  buildOpaqueEnvelope,
+  decodeOpaqueEnvelope,
+  opaqueEnvelopeSchema,
+  type ObliviousRelayDeps,
+  type ObliviousRelayEndpoint,
+  type ObliviousRelayForwardResult,
+  type ObliviousRelayLogEntry,
+  type OpaqueEnvelope,
+} from './transports/oblivious-relay.js';
 
 // Daemon mode
 export { DaemonManager } from './daemon/daemon-manager.js';

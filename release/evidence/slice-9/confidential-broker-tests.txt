@@ -1,0 +1,10 @@
+
+ RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+
+ ✓ packages/cloud-broker/tests/confidential.test.ts (7 tests) 9ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  01:30:51
+   Duration  343ms (transform 142ms, setup 84ms, import 164ms, tests 9ms, environment 0ms)
+
