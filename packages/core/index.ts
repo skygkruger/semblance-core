@@ -16,7 +16,8 @@ import { CoreIPCClient } from './agent/ipc-client.js';
 import { createOrchestrator, createCoordinatorAgent } from './agent/index.js';
 import { classifyHardware } from './llm/hardware-types.js';
 import { getRecommendedReasoningModel } from './llm/model-registry.js';
-import { loadExtensions } from './extensions/loader.js';
+import { loadExtensions, getDigitalRepresentativeArtifactStatus } from './extensions/loader.js';
+import { buildExtensionRunnerClients } from './extensions/runner-clients.js';
 import { PremiumGate } from './premium/premium-gate.js';
 import { StyleProfileStore } from './style/style-profile.js';
 import { ipAdapters } from './extensions/ip-adapter-registry.js';
@@ -145,6 +146,10 @@ export {
   getLoadedExtensions,
   registerExtension,
   clearExtensions,
+  getDigitalRepresentativeArtifactStatus,
+  type LoadExtensionsOptions,
+  type DigitalRepresentativeArtifactStatus,
+  type SignedDrPaths,
   registerSlot,
   getSlot,
   hasSlot,
@@ -250,6 +255,10 @@ export interface SemblanceCoreConfig {
   vaultIngest?: VaultFileIngestHooks;
   /** Optional vault-backed chat retrieval — replaces primary knowledge.search when set. */
   vaultChatGrounding?: VaultChatGrounding;
+  /** Signed DR manifest path (overrides SEMBLANCE_DR_MANIFEST). */
+  signedDrManifestPath?: string;
+  /** Signed DR artifact path (overrides SEMBLANCE_DR_ARTIFACT). */
+  signedDrArtifactPath?: string;
 }
 
 // Default socket path varies by platform
@@ -437,10 +446,38 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
         // Step 6: Load and initialize extensions (e.g. @semblance/dr)
         console.error('[SemblanceCore] Loading extensions...');
         const extStart = Date.now();
-        const extensions = await loadExtensions();
+        const premiumGate = new PremiumGate(coreDb);
+        const extensions = await loadExtensions({
+          signedPaths: config?.signedDrManifestPath
+            ? {
+                manifestPath: config.signedDrManifestPath,
+                artifactPath: config.signedDrArtifactPath,
+              }
+            : undefined,
+          runnerClients: buildExtensionRunnerClients({
+            ipc,
+            knowledge,
+            premiumGate,
+          }),
+          dataDir,
+          model: chatModel,
+          legacyContext: {
+            db: coreDb,
+            llm,
+            autonomyManager: agent.autonomy,
+            styleProfileStore,
+            recurringDetector: ipAdapters.recurringDetector,
+          },
+        });
+        const drStatus = getDigitalRepresentativeArtifactStatus();
+        if (premiumGate.isPremium()) {
+          premiumGate.assertDigitalRepresentativeReady({
+            artifactPresent: drStatus.configured && drStatus.present,
+            artifactValid: drStatus.valid && drStatus.loadedViaRunner,
+          });
+        }
         console.error(`[SemblanceCore] Extensions loaded in ${Date.now() - extStart}ms`);
         if (extensions.length > 0) {
-          const premiumGate = new PremiumGate(coreDb);
           const extCtx: ExtensionInitContext = {
             db: coreDb,
             llm,
@@ -455,7 +492,7 @@ export function createSemblanceCore(config?: SemblanceCoreConfig): SemblanceCore
             dataDir,
           };
           for (const ext of extensions) {
-            if (ext.initialize) {
+            if (ext.initialize && !drStatus.loadedViaRunner) {
               await ext.initialize(extCtx);
             }
             if (ext.tools && ext.tools.length > 0) {

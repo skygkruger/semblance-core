@@ -48,8 +48,10 @@ export function compareSemver(a: string, b: string): number {
     throw new Error(`Invalid semver: '${a}' or '${b}'`);
   }
   for (let i = 0; i < 3; i += 1) {
-    if (left[i] !== right[i]) {
-      return left[i] - right[i];
+    const leftPart = left[i] ?? 0;
+    const rightPart = right[i] ?? 0;
+    if (leftPart !== rightPart) {
+      return leftPart - rightPart;
     }
   }
   return 0;

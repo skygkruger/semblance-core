@@ -30,3 +30,12 @@ export type {
   PaidLicenseValidation,
 } from './license-keys.js';
 export { extractLicenseKey } from './license-email-detector.js';
+export {
+  assertDigitalRepresentativeReady,
+  evaluateDigitalRepresentativeReadiness,
+  DigitalRepresentativeNotReadyError,
+} from './dr-readiness.js';
+export type {
+  DigitalRepresentativeReadinessInput,
+  DigitalRepresentativeReadinessResult,
+} from './dr-readiness.js';

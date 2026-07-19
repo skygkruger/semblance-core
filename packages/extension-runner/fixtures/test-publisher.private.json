@@ -1,0 +1,6 @@
+{
+  "_comment": "TEST ONLY — private signing key for extension-runner fixtures. Never use in production.",
+  "keyId": "dr-test-publisher-v1",
+  "algorithm": "Ed25519",
+  "privateKeyPem": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEILf/EqJ/vVVJ3QKU2QOgPsQHsK83ZPdRHOLrZvdLM0Vp\n-----END PRIVATE KEY-----\n"
+}

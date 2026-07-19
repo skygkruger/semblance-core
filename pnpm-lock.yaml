@@ -87,6 +87,12 @@ importers:
       '@noble/curves':
         specifier: ^1.9.7
         version: 1.9.7
+      '@semblance/extension-runner':
+        specifier: workspace:*
+        version: link:../extension-runner
+      '@semblance/extension-sdk':
+        specifier: workspace:*
+        version: link:../extension-sdk
       '@semblance/kernel':
         specifier: workspace:*
         version: link:../kernel
@@ -248,6 +254,12 @@ importers:
       vite:
         specifier: ^6.0.0
         version: 6.4.1(@types/node@25.3.0)(jiti@1.21.7)(terser@5.46.0)(tsx@4.21.0)
+
+  packages/extension-runner:
+    dependencies:
+      '@semblance/extension-sdk':
+        specifier: workspace:*
+        version: link:../extension-sdk
 
   packages/extension-sdk:
     dependencies:
