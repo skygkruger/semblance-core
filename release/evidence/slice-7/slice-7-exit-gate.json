@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "slice": 7,
+  "releaseId": "entitlements-commerce-2026-07-18",
+  "generatedAt": "2026-07-19T04:02:30.000Z",
+  "exitGate": {
+    "testPurchaseEntitlementPremium": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-7/exit-gate.txt",
+      "notes": "Kernel activate + PremiumGate.isPremium true after signed sem_ activation"
+    },
+    "renewalExtendsPremium": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-7/exit-gate.txt",
+      "notes": "Re-activation with extended validUntil keeps premium active"
+    },
+    "refundRevocationNotPremium": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-7/exit-gate.txt",
+      "notes": "Local revoke + commerce charge.refunded both clear paid authority"
+    },
+    "offlineGracePeriod": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-7/exit-gate.txt",
+      "notes": "Subscription remains active within offlineGraceDays after validUntil"
+    },
+    "foundingSeatsConcurrent500": {
+      "AdversariallyVerified": true,
+      "evidence": "release/evidence/slice-7/commerce-worker-tests.txt",
+      "notes": "1000 concurrent seat allocator attempts → exactly 500 unique seats (private worker + core contract import)"
+    },
+    "duplicateWebhookIdempotent": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-7/exit-gate.txt",
+      "notes": "Second Stripe delivery returns duplicate without re-issuing entitlement"
+    },
+    "restartEntitlementPersistence": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-7/exit-gate.txt",
+      "notes": "EntitlementService reloads active snapshot from key store after simulated restart"
+    },
+    "unpaidNeverPremium": {
+      "AdversariallyVerified": true,
+      "evidence": "release/evidence/slice-7/exit-gate.txt",
+      "notes": "Reservation JWT and expired sem_ keys never grant premium"
+    },
+    "capabilityPreviewConversion": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-7/capability-preview.txt",
+      "notes": "LicenseCapabilityGate shows CapabilityPreview with founding/redeem CTAs at intent boundary"
+    },
+    "commerceNewSalesEnabled": {
+      "Implemented": true,
+      "evidence": "release/evidence/slice-7/new-sales-enabled.txt",
+      "notes": "release-manifest commerce.newSalesEnabled === true after exit gate green"
+    }
+  },
+  "completedSlicesEligible": true,
+  "codeProvenExitItems": 10,
+  "runtimeVerifiedExitItems": 8,
+  "honestBlockers": []
+}

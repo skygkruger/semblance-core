@@ -72,6 +72,31 @@ export function approvedPortalUrl(input: string): string | null {
   }
 }
 
+const FORBIDDEN_COMMERCE_AUDIT_KEYS = [
+  'documentId',
+  'documentIds',
+  'pagId',
+  'pagIds',
+  'personalAgencyGraphId',
+  'vaultDocumentId',
+  'contentId',
+  'contentIds',
+] as const;
+
+function assertCommerceAuditMetadata(metadata?: Record<string, unknown>): Record<string, unknown> {
+  if (!metadata) {
+    return {};
+  }
+
+  for (const key of FORBIDDEN_COMMERCE_AUDIT_KEYS) {
+    if (key in metadata) {
+      throw new Error(`Commerce audit metadata must not include ${key}`);
+    }
+  }
+
+  return metadata;
+}
+
 function logCommerceAudit(
   auditTrail: AuditTrail | undefined,
   operation: CommerceOperation,
@@ -93,7 +118,7 @@ function logCommerceAudit(
     metadata: {
       commerceOperation: operation,
       workerHost: COMMERCE_WORKER_HOST,
-      ...metadata,
+      ...assertCommerceAuditMetadata(metadata),
     },
     estimatedTimeSavedSeconds: 0,
   });

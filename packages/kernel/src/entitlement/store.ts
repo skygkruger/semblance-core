@@ -1,7 +1,10 @@
 import type { SignedEntitlementV1 } from '@semblance/protocol';
 import type { KeyStore } from '../keys/key-store.js';
 import { ENTITLEMENT_SNAPSHOT_KEY, LICENSE_KEY } from '../keys/key-store.js';
-import { isEntitlementCurrentlyActive } from './verifier.js';
+import { isDeviceEnrolled } from './device-enrollment.js';
+import { evaluateSubscriptionGrace } from './grace.js';
+import { isRevoked } from './revocation.js';
+import { verifySignedEntitlementV1 } from './verifier.js';
 
 export interface EntitlementSnapshot {
   active: boolean;
@@ -10,6 +13,10 @@ export interface EntitlementSnapshot {
   validUntil: string | null;
   verifiedAt: string;
   entitlement: SignedEntitlementV1;
+  inGracePeriod: boolean;
+  graceEndsAt: string | null;
+  deviceEnrolled: boolean;
+  revoked: boolean;
 }
 
 export interface StoredEntitlementRecord {
@@ -18,7 +25,10 @@ export interface StoredEntitlementRecord {
 }
 
 export class EntitlementStore {
-  constructor(private readonly keyStore: KeyStore) {}
+  constructor(
+    private readonly keyStore: KeyStore,
+    private readonly deviceId: string,
+  ) {}
 
   async getRecord(): Promise<StoredEntitlementRecord | null> {
     const raw = await this.keyStore.get(ENTITLEMENT_SNAPSHOT_KEY);
@@ -43,7 +53,17 @@ export class EntitlementStore {
       return null;
     }
 
-    const active = isEntitlementCurrentlyActive(record.entitlement, nowMs);
+    const revoked = await isRevoked(this.keyStore, record.entitlement);
+    const grace = evaluateSubscriptionGrace(record.entitlement, nowMs);
+    const signatureValid = verifySignedEntitlementV1(record.entitlement, nowMs).valid;
+    const deviceEnrolled = revoked
+      ? false
+      : await isDeviceEnrolled(
+        this.keyStore,
+        record.entitlement.entitlementId,
+        this.deviceId,
+      );
+    const active = !revoked && signatureValid && grace.active && deviceEnrolled;
     const { tier, seat, validUntil } = record.entitlement;
 
     return {
@@ -53,6 +73,10 @@ export class EntitlementStore {
       validUntil,
       verifiedAt: record.verifiedAt,
       entitlement: record.entitlement,
+      inGracePeriod: grace.inGracePeriod,
+      graceEndsAt: grace.graceEndsAt,
+      deviceEnrolled,
+      revoked,
     };
   }
 

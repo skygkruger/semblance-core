@@ -97,12 +97,41 @@ export {
   createEntitlementService,
   EntitlementService,
   type EntitlementActivationResult,
+  type EntitlementServiceOptions,
 } from './entitlement/service.js';
 export {
   EntitlementStore,
   type EntitlementSnapshot,
   type StoredEntitlementRecord,
 } from './entitlement/store.js';
+export {
+  evaluateSubscriptionGrace,
+  isWithinEntitlementGrace,
+  type GraceEvaluation,
+} from './entitlement/grace.js';
+export {
+  revokeEntitlement,
+  isRevoked,
+  acknowledgeRevocationEpoch,
+  resetRevocationForActivation,
+  clearRevocationState,
+  readRevocationState,
+  REVOCATION_STATE_KEY,
+  type RevocationState,
+} from './entitlement/revocation.js';
+export {
+  enrollDevice,
+  transferDeviceEnrollment,
+  removeEnrolledDevice,
+  isDeviceEnrolled,
+  clearDeviceEnrollment,
+  getDeviceEnrollmentState,
+  DeviceEnrollmentError,
+  DEVICE_ENROLLMENT_KEY,
+  MAX_ENROLLED_DEVICES,
+  type EnrolledDevice,
+  type DeviceEnrollmentState,
+} from './entitlement/device-enrollment.js';
 export {
   verifySignedEntitlementV1,
   validateLegacySemLicenseKey,

@@ -157,11 +157,12 @@ describe('release manifest v1', () => {
     expect(validate(validFixture), validate.errors?.map((error) => error.message).join(', ')).toBe(true);
   });
 
-  it('keeps the checked-in truth baseline schema-valid and sales-frozen', () => {
+  it('keeps the checked-in truth baseline schema-valid with Slice 7 sales enabled', () => {
     const result = validateReleaseManifest(currentManifest);
 
     expect(result).toEqual({ valid: true, errors: [] });
-    expect(currentManifest.commerce.newSalesEnabled).toBe(false);
+    expect(currentManifest.commerce.newSalesEnabled).toBe(true);
+    expect(currentManifest.completedSlices).toContain(7);
     expect(currentManifest.features.every((feature) => feature.state !== 'Released')).toBe(true);
   });
 

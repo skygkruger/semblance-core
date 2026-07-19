@@ -120,6 +120,8 @@ export type { HealthDashboardProps } from './components/HealthDashboard/index.js
 
 // License / Premium
 export { FeatureGate } from './components/FeatureGate/index.js';
+export { CapabilityPreview } from './components/CapabilityPreview/index.js';
+export type { CapabilityPreviewProps } from './components/CapabilityPreview/index.js';
 export { UpgradeScreen } from './components/UpgradeScreen/index.js';
 export { LicenseActivation } from './components/LicenseActivation/index.js';
 export { FoundingMemberBadge } from './components/FoundingMemberBadge/index.js';

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FinancialDashboard, FeatureGate } from '@semblance/ui';
+import { FinancialDashboard } from '@semblance/ui';
 import type { FinancialPeriod } from '@semblance/ui/components/FinancialDashboard/FinancialDashboard.types';
-import { useLicense } from '../contexts/LicenseContext';
+import { useLicense, LicenseCapabilityGate } from '../contexts/LicenseContext';
 import { useFeatureAuth } from '@semblance/ui';
 import {
   getFinancialDashboard,
@@ -140,11 +140,7 @@ export function FinancialDashboardScreen() {
         height: '100%',
         padding: 24,
       }}>
-        <FeatureGate
-          feature="financial-dashboard"
-          isPremium={false}
-          onLearnMore={() => navigate('/upgrade')}
-        />
+        <LicenseCapabilityGate feature="financial-dashboard" />
       </div>
     );
   }

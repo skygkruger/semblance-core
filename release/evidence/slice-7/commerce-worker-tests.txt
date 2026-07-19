@@ -1,0 +1,14 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @semblance/commerce-worker@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.10 /Users/veridiansynthetics/semblence-representative/infrastructure/commerce-worker
+
+
+ Test Files  7 passed (7)
+      Tests  34 passed (34)
+   Start at  21:02:24
+   Duration  221ms (transform 194ms, setup 0ms, import 298ms, tests 95ms, environment 0ms)
+

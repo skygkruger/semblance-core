@@ -175,6 +175,40 @@ function verifyPublicClaims(coreRoot, websiteRoot) {
   return errors;
 }
 
+function verifyPublicClaimsSalesFlag(manifest, coreRoot) {
+  const errors = [];
+  const claimsPath = join(coreRoot, 'release', 'public-claims.v1.json');
+  if (!existsSync(claimsPath)) {
+    errors.push(error(
+      'PUBLIC_CLAIMS_SALES_MISMATCH',
+      'release/public-claims.v1.json missing for sales-flag coherence check',
+      'public-claims.v1.json',
+    ));
+    return errors;
+  }
+  let claims;
+  try {
+    claims = JSON.parse(readFileSync(claimsPath, 'utf8'));
+  } catch {
+    errors.push(error(
+      'PUBLIC_CLAIMS_SALES_MISMATCH',
+      'release/public-claims.v1.json is not valid JSON',
+      'public-claims.v1.json',
+    ));
+    return errors;
+  }
+  const claimsEnabled = claims?.salesFreeze?.newSalesEnabled === true;
+  const manifestEnabled = manifest?.commerce?.newSalesEnabled === true;
+  if (claimsEnabled !== manifestEnabled) {
+    errors.push(error(
+      'PUBLIC_CLAIMS_SALES_MISMATCH',
+      `public-claims salesFreeze.newSalesEnabled (${claimsEnabled}) must match commerce.newSalesEnabled (${manifestEnabled})`,
+      'public-claims.v1.json',
+    ));
+  }
+  return errors;
+}
+
 function verifyReservationFixture(coreRoot, websiteRoot, representativeRoot) {
   const errors = [];
   const coreFixture = join(coreRoot, 'release', 'contracts', 'legacy-waitlist-token.fixture.json');
@@ -424,13 +458,65 @@ function verifyMigrationEvidence(manifest, representativeRoot) {
   return errors;
 }
 
-function verifyCommerceFreeze(manifest, representativeRoot) {
+function verifyCommerceFreeze(manifest, representativeRoot, coreRoot) {
   const errors = [];
+  const slice7Complete = Array.isArray(manifest.completedSlices)
+    && manifest.completedSlices.includes(7);
+  const salesEnabledEvidence = (manifest.evidence ?? []).find(
+    (entry) => entry.id === 'slice-7-new-sales-enabled',
+  );
+
+  if (slice7Complete && salesEnabledEvidence) {
+    if (manifest.commerce?.newSalesEnabled !== true) {
+      errors.push(error(
+        'COMMERCE_SALES_DISABLED',
+        'commerce.newSalesEnabled must be true when Slice 7 is complete',
+        'commerce.newSalesEnabled',
+      ));
+    }
+
+    const salesEvidenceAbsolute = join(coreRoot, salesEnabledEvidence.path);
+    if (!existsSync(salesEvidenceAbsolute)) {
+      errors.push(error(
+        'COMMERCE_SALES_EVIDENCE_MISSING',
+        `Slice 7 sales evidence missing: ${salesEnabledEvidence.path}`,
+        salesEnabledEvidence.path,
+      ));
+    } else if (sha256File(salesEvidenceAbsolute) !== salesEnabledEvidence.sha256) {
+      errors.push(error(
+        'COMMERCE_SALES_EVIDENCE_HASH_MISMATCH',
+        'Slice 7 sales evidence hash does not match manifest',
+        `evidence.${salesEnabledEvidence.id}`,
+      ));
+    }
+
+    const exitGateEvidence = (manifest.evidence ?? []).find(
+      (entry) => entry.id === 'slice-7-exit-gate',
+    );
+    if (exitGateEvidence) {
+      const exitGateAbsolute = join(coreRoot, exitGateEvidence.path);
+      if (!existsSync(exitGateAbsolute)) {
+        errors.push(error(
+          'SLICE_7_EXIT_GATE_MISSING',
+          `Slice 7 exit gate evidence missing: ${exitGateEvidence.path}`,
+          exitGateEvidence.path,
+        ));
+      } else if (sha256File(exitGateAbsolute) !== exitGateEvidence.sha256) {
+        errors.push(error(
+          'SLICE_7_EXIT_GATE_HASH_MISMATCH',
+          'Slice 7 exit gate evidence hash does not match manifest',
+          `evidence.${exitGateEvidence.id}`,
+        ));
+      }
+    }
+
+    return errors;
+  }
 
   if (manifest.commerce?.newSalesEnabled !== false) {
     errors.push(error(
       'COMMERCE_SALES_ENABLED',
-      'commerce.newSalesEnabled must be false for Slice 1',
+      'commerce.newSalesEnabled must be false before Slice 7 sales evidence is pinned',
       'commerce.newSalesEnabled',
     ));
   }
@@ -555,11 +641,12 @@ function verifyCrossRepoSlice(options) {
 
   errors.push(...verifySourcePins(manifest, repositories));
   errors.push(...verifyPublicClaims(coreRoot, websiteRoot));
+  errors.push(...verifyPublicClaimsSalesFlag(manifest, coreRoot));
   errors.push(...verifyReservationFixture(coreRoot, websiteRoot, representativeRoot));
   errors.push(...verifyLegalVersion(manifest, websiteRoot));
   errors.push(...verifyEvidenceHashes(manifest, repositories));
   errors.push(...verifyMigrationEvidence(manifest, representativeRoot));
-  errors.push(...verifyCommerceFreeze(manifest, representativeRoot));
+  errors.push(...verifyCommerceFreeze(manifest, representativeRoot, coreRoot));
 
   return { valid: errors.length === 0, errors };
 }

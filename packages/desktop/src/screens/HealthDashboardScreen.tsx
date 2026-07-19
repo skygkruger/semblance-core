@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HealthDashboard, FeatureGate } from '@semblance/ui';
-import { useLicense } from '../contexts/LicenseContext';
+import { HealthDashboard } from '@semblance/ui';
+import { useLicense, LicenseCapabilityGate } from '../contexts/LicenseContext';
 import { useFeatureAuth } from '@semblance/ui';
 import {
   getHealthDashboard,
@@ -75,11 +75,7 @@ export function HealthDashboardScreen() {
         height: '100%',
         padding: 24,
       }}>
-        <FeatureGate
-          feature="health-tracking"
-          isPremium={false}
-          onLearnMore={() => navigate('/upgrade')}
-        />
+        <LicenseCapabilityGate feature="health-tracking" />
       </div>
     );
   }

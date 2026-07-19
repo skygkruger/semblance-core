@@ -74,9 +74,19 @@ import {
   FoundingReservationStore,
   PremiumGate,
   runReservationEntitlementSplit,
+  createKernelEntitlementSnapshotSource,
+  refreshKernelEntitlementSnapshotSource,
+  type KernelEntitlementSnapshotSource,
 } from '../../../core/premium/index.js';
+import type { ActivationResult } from '../../../core/premium/premium-gate.js';
 import { extractLicenseKey } from '../../../core/premium/license-email-detector.js';
 import { nodeReservationMigrationAdapter } from './reservation-migration-node.js';
+import {
+  createDeviceIdentity,
+  createEntitlementService,
+  createFileKeyStore,
+  type EntitlementService,
+} from '../../../kernel/src/index.js';
 
 // IP Adapter Registry — runtime access to @semblance/dr implementations
 import { ipAdapters } from '../../../core/extensions/ip-adapter-registry.js';
@@ -389,6 +399,8 @@ let clipboardRecentActions: Array<{ patternType: string; action: string; timesta
 
 // Premium state
 let premiumGate: PremiumGate | null = null;
+let entitlementService: EntitlementService | null = null;
+let entitlementSnapshotSource: KernelEntitlementSnapshotSource | null = null;
 let reservationStore: FoundingReservationStore | null = null;
 let representativeEmailWorkflowStore: RepresentativeEmailWorkflowStore | null = null;
 
@@ -924,6 +936,8 @@ async function handleInitialize(): Promise<unknown> {
     // storage in OS keychain is a frontend concern. PremiumGate falls back to SQLite metadata only;
     // getLicenseKey() returns null, which license:status handles gracefully.
     premiumGate = new PremiumGate(prefsDb as unknown as import('../../../core/platform/types.js').DatabaseHandle);
+    await initializeKernelEntitlement(dataDir);
+    premiumGate.setEntitlementSource(entitlementSnapshotSource);
 
     // Ensure conversation tables exist BEFORE ConversationManager.migrate()
     // (The Orchestrator normally creates these, but core may not initialize.)
@@ -3428,7 +3442,7 @@ async function handleEmailStartIndex(
           if (!bodyText) continue;
           const detectedKey = extractLicenseKey(bodyText);
           if (detectedKey) {
-            const activationResult = premiumGate.activateLicense(detectedKey);
+            const activationResult = await activatePaidEntitlement(detectedKey);
             if (activationResult.success) {
               setPref('active_license_key', detectedKey);
               console.error(`[sidecar] License auto-detected and activated: tier=${activationResult.tier}`);
@@ -5474,6 +5488,59 @@ async function runStyleExtraction(
   return { emailsAnalyzed: emailCount, profileId };
 }
 
+// ─── Kernel entitlement helpers ───────────────────────────────────────────────
+
+async function initializeKernelEntitlement(sidecarDataDir: string): Promise<void> {
+  const keyStore = createFileKeyStore(join(sidecarDataDir, 'entitlement-keystore.json'));
+  const identity = await createDeviceIdentity(keyStore);
+  entitlementService = createEntitlementService(keyStore, { deviceId: identity.deviceId });
+  entitlementSnapshotSource = createKernelEntitlementSnapshotSource();
+  await refreshEntitlementSnapshotCache();
+
+  const existingKey = getPref('active_license_key');
+  if (existingKey && existingKey.startsWith('sem_')) {
+    const snapshot = await entitlementService.getSnapshot();
+    if (!snapshot?.active) {
+      await activatePaidEntitlement(existingKey);
+    }
+  }
+}
+
+async function refreshEntitlementSnapshotCache(): Promise<void> {
+  if (!entitlementService || !entitlementSnapshotSource) {
+    return;
+  }
+  await refreshKernelEntitlementSnapshotSource(entitlementSnapshotSource, entitlementService);
+}
+
+async function activatePaidEntitlement(key: string): Promise<ActivationResult> {
+  if (!entitlementService || !premiumGate) {
+    return { success: false, error: 'Entitlement service not initialized' };
+  }
+
+  const result = await entitlementService.activate(key);
+  await refreshEntitlementSnapshotCache();
+  if (!result.success || !result.snapshot) {
+    return { success: false, error: result.error ?? 'Entitlement activation failed' };
+  }
+
+  return {
+    success: true,
+    tier: result.snapshot.tier,
+    expiresAt: result.snapshot.validUntil ?? undefined,
+  };
+}
+
+async function disconnectPaidEntitlement(): Promise<void> {
+  if (entitlementService) {
+    await entitlementService.revokeLocalEntitlement();
+    await refreshEntitlementSnapshotCache();
+  }
+  if (premiumGate) {
+    await premiumGate.disconnect();
+  }
+}
+
 // ─── Connector Auth Handlers ────────────────────────────────────────────────
 
 function ensureSidecarConnectorCredentialStack(): {
@@ -7050,7 +7117,7 @@ async function handleRequest(req: Request): Promise<void> {
           break;
         }
         const { key } = params as { key: string };
-        result = premiumGate.activateLicense(key);
+        result = await activatePaidEntitlement(key);
         // Store the key in prefs for portal access and renewal verification.
         // License keys are signed public credentials (like JWTs), not secrets.
         if (result.success) {
@@ -7085,7 +7152,7 @@ async function handleRequest(req: Request): Promise<void> {
           respondError(id, 'PremiumGate not initialized');
           break;
         }
-        await premiumGate.disconnect();
+        await disconnectPaidEntitlement();
         // Clear the stored key from prefs
         setPref('active_license_key', '');
         respond(id, { success: true });
@@ -11478,7 +11545,7 @@ async function handleRequest(req: Request): Promise<void> {
             for (const email of recentEmails) {
               const key = extractLicenseKey(email.snippet);
               if (key) {
-                const result = premiumGate.activateLicense(key);
+                const result = await activatePaidEntitlement(key);
                 if (result.success) {
                   setPref('active_license_key', key);
                   console.error(`[sidecar] Cron license scan: auto-activated key from email ${email.message_id}`);
@@ -11499,7 +11566,7 @@ async function handleRequest(req: Request): Promise<void> {
                 for (const r of kgResults) {
                   const keyFromKG = extractLicenseKey(r.chunk.content);
                   if (keyFromKG) {
-                    const result = premiumGate.activateLicense(keyFromKG);
+                    const result = await activatePaidEntitlement(keyFromKG);
                     if (result.success) {
                       setPref('active_license_key', keyFromKG);
                       console.error(`[sidecar] Cron license scan: auto-activated key from knowledge graph`);
@@ -11542,7 +11609,7 @@ async function handleRequest(req: Request): Promise<void> {
 
             if (data.valid && data.isNewer && data.key && data.key !== currentKey) {
               // Worker has a newer key — activate it
-              const activationResult = premiumGate!.activateLicense(data.key);
+              const activationResult = await activatePaidEntitlement(data.key);
               if (activationResult.success) {
                 setPref('active_license_key', data.key);
                 emit('semblance://license-auto-activated', activationResult);
@@ -11550,7 +11617,7 @@ async function handleRequest(req: Request): Promise<void> {
               }
             } else if (!data.valid && data.revoked) {
               // License was revoked — clear it
-              await premiumGate!.disconnect();
+              await disconnectPaidEntitlement();
               setPref('active_license_key', '');
               console.error('[sidecar] License revoked detected via Worker check');
             }

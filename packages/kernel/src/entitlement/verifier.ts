@@ -1,6 +1,7 @@
 import { createPublicKey, verify } from 'node:crypto';
 import { SignedEntitlementV1 as SignedEntitlementSchema, type SignedEntitlementV1 } from '@semblance/protocol';
 import { entitlementSigningPayload } from './signing-payload.js';
+import { evaluateSubscriptionGrace } from './grace.js';
 import { LEGACY_SEM_SIGNATURE_PREFIX } from './legacy-adapter.js';
 
 export const LEGACY_SEM_ISSUER_KEY_ID = 'semblance-license-v1';
@@ -236,17 +237,8 @@ function validateEntitlementWindow(
     return { valid: false, error: 'Entitlement is not yet valid' };
   }
 
-  if (entitlement.validUntil === null) {
-    return { valid: true, entitlement };
-  }
-
-  const validUntilMs = Date.parse(entitlement.validUntil);
-  if (!Number.isFinite(validUntilMs) || new Date(validUntilMs).toISOString() !== entitlement.validUntil) {
-    return { valid: false, error: 'Invalid entitlement: validUntil is not a canonical timestamp' };
-  }
-
-  const graceMs = entitlement.offlineGraceDays * 24 * 60 * 60 * 1000;
-  if (validUntilMs + graceMs <= nowMs) {
+  const grace = evaluateSubscriptionGrace(entitlement, nowMs);
+  if (!grace.active) {
     return { valid: false, error: 'Entitlement has expired' };
   }
 

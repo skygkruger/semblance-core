@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-18T20:05:00.000Z",
+  "generatedAt": "2026-07-19T04:10:00.000Z",
   "releaseManifest": "release/release-manifest.json",
   "salesFreeze": {
-    "newSalesEnabled": false,
-    "acquisitionMode": "reservation_waitlist_only",
-    "note": "New paid checkout and purchase CTAs are forbidden while commerce.newSalesEnabled is false. Existing-customer Stripe Customer Portal login remains allowed."
+    "newSalesEnabled": true,
+    "acquisitionMode": "founding_checkout_and_waitlist",
+    "note": "Slice 7 exit gate passed: new paid founding checkout is permitted. Waitlist/reservation remains reservation_only and never grants premium. Existing-customer Stripe Customer Portal login remains allowed."
   },
   "allowedPlatforms": {
     "availabilityMode": "development_targets_only",

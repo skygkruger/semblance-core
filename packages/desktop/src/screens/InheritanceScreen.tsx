@@ -7,8 +7,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useLicense } from '../contexts/LicenseContext';
-import { Button, Input, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { useLicense, LicenseCapabilityGate } from '../contexts/LicenseContext';
+import { Button, Input, SkeletonCard } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
 import { GhostSprite } from '../components/GhostSprite';
 import { PageContainer } from '../components/PageContainer';
@@ -146,11 +146,7 @@ export function InheritanceScreen() {
         height: '100%',
         padding: 24,
       }}>
-        <FeatureGate
-          feature="inheritance-protocol"
-          isPremium={false}
-          onLearnMore={() => navigate('/upgrade')}
-        />
+        <LicenseCapabilityGate feature="inheritance-protocol" />
       </div>
     );
   }

@@ -9,8 +9,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLicense } from '../contexts/LicenseContext';
-import { Button, Input, StatusIndicator, SkeletonCard, FeatureGate } from '@semblance/ui';
+import { useLicense, LicenseCapabilityGate } from '../contexts/LicenseContext';
+import { Button, Input, StatusIndicator, SkeletonCard } from '@semblance/ui';
 import { ContentBracket } from '../components/ContentBracket';
 import { GhostSprite } from '../components/GhostSprite';
 import { PageContainer } from '../components/PageContainer';
@@ -150,11 +150,7 @@ export function SemblanceNetworkScreen() {
         height: '100%',
         padding: 24,
       }}>
-        <FeatureGate
-          feature="semblance-network"
-          isPremium={false}
-          onLearnMore={() => navigate('/upgrade')}
-        />
+        <LicenseCapabilityGate feature="semblance-network" />
       </div>
     );
   }

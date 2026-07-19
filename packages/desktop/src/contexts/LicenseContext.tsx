@@ -13,6 +13,9 @@
  */
 
 import { createContext, useContext, useCallback, useMemo, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { CapabilityPreview } from '@semblance/ui';
+import type { PremiumFeature } from '@semblance/ui';
 import { useAppState, useAppDispatch } from '../state/AppState';
 import type { AppState } from '../state/AppState';
 import { getLicenseStatus, activateLicenseKey, importFoundingReservation, requestLicensePortalSession } from '../ipc/commands';
@@ -170,4 +173,33 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
 
 export function useLicense(): LicenseContextValue {
   return useContext(LicenseContext);
+}
+
+// ─── Capability boundary (Slice 7) ────────────────────────────────────────
+
+export interface LicenseCapabilityGateProps {
+  feature: PremiumFeature;
+  children?: ReactNode;
+}
+
+/**
+ * Intent-boundary gate: unpaid users see CapabilityPreview with commerce CTAs;
+ * premium users pass through to children. Never grants entitlement locally.
+ */
+export function LicenseCapabilityGate({ feature, children }: LicenseCapabilityGateProps) {
+  const license = useLicense();
+  const navigate = useNavigate();
+
+  if (license.isPremium) {
+    return <>{children}</>;
+  }
+
+  return (
+    <CapabilityPreview
+      feature={feature}
+      newSalesEnabled={license.newSalesEnabled}
+      onFoundingCheckout={() => license.openCheckout('founding')}
+      onRedeem={() => navigate('/upgrade')}
+    />
+  );
 }
