@@ -11,9 +11,10 @@
  * Usage:
  *   node scripts/cross-cutting-gate-matrix.js
  *   node scripts/cross-cutting-gate-matrix.js --json-only
- *   node scripts/cross-cutting-gate-matrix.js --no-run   # structure only
+ *   node scripts/cross-cutting-gate-matrix.js --no-run          # structure only
+ *   node scripts/cross-cutting-gate-matrix.js --write-evidence  # overwrite pinned artifacts
  *
- * Live caller: node scripts/cross-cutting-gate-matrix.js
+ * Live callers: preflight.js --cross-cutting; verify-cross-repo-slice.js (evidence pin)
  * Optional preflight: node scripts/preflight.js --cross-cutting
  *
  * Exit: 0 when all runnable gates pass; 1 on any runnable failure.
@@ -35,6 +36,7 @@ const TXT_OUT = join(EVIDENCE_DIR, 'gate-matrix.txt');
 
 const JSON_ONLY = process.argv.includes('--json-only');
 const NO_RUN = process.argv.includes('--no-run');
+const WRITE_EVIDENCE = process.argv.includes('--write-evidence');
 
 /** @typedef {'pass' | 'fail' | 'DeferredFieldProof'} GateStatus */
 
@@ -577,15 +579,21 @@ function main() {
     gates: results,
   };
 
-  mkdirSync(EVIDENCE_DIR, { recursive: true });
-  writeFileSync(JSON_OUT, `${JSON.stringify(report, null, 2)}\n`);
-  writeFileSync(TXT_OUT, renderText(report));
+  if (WRITE_EVIDENCE) {
+    mkdirSync(EVIDENCE_DIR, { recursive: true });
+    writeFileSync(JSON_OUT, `${JSON.stringify(report, null, 2)}\n`);
+    writeFileSync(TXT_OUT, renderText(report));
+  }
 
   if (!JSON_ONLY) {
     console.log('\n' + '─'.repeat(60));
     console.log(`Summary: pass=${summary.pass} fail=${summary.fail} deferred=${summary.DeferredFieldProof}`);
-    console.log(`Evidence: ${JSON_OUT}`);
-    console.log(`Human:    ${TXT_OUT}`);
+    if (WRITE_EVIDENCE) {
+      console.log(`Evidence written: ${JSON_OUT}`);
+      console.log(`Human written:    ${TXT_OUT}`);
+    } else {
+      console.log('Evidence not rewritten (pass --write-evidence to pin).');
+    }
   } else {
     console.log(JSON.stringify(report, null, 2));
   }
