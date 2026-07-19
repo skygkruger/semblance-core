@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "releaseId": "signed-capability-ecosystem-2026-07-19",
-  "generatedAt": "2026-07-19T17:25:21Z",
+  "releaseId": "shared-space-sovereignty-2026-07-19",
+  "generatedAt": "2026-07-19T18:35:41Z",
   "repositories": {
     "core": {
-      "sourceCommit": "7ae319499520ee202f333097f172fb4a8ed64da9",
-      "sourceTreeHash": "eb57df0d27439b76368647d936607278aad4bbad"
+      "sourceCommit": "154a0919d84607eb446b54c06d21df3e658e2854",
+      "sourceTreeHash": "c08b8280926b6a5c263df768071e07f17ffccdd8"
     },
     "representative": {
       "sourceCommit": "349df71eed30ba87f6b8f1679af3337526c668a2",
@@ -822,6 +822,56 @@
       "requiredForStates": [
         "RuntimeVerified"
       ]
+    },
+    {
+      "id": "slice-13-exit-gate",
+      "repository": "core",
+      "path": "release/evidence/slice-13/slice-13-exit-gate.json",
+      "sha256": "8ee36a1e779c4023ca133d4b137696dcd6db9cd0c09428af15272b642b53600f",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-13-exit-gate-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-13/exit-gate.txt",
+      "sha256": "862961887c3bb9aa36f2b8b53fe4e516ab28b991a0639ae79340b76bcbd1a8da",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-13-shared-space-kernel-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-13/shared-space-kernel-tests.txt",
+      "sha256": "e357dc6c203a0a588edd6aa98dab0cb6b6910bacad9d1a8173ca104326d84daa",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-13-shared-space-vault-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-13/shared-space-vault-tests.txt",
+      "sha256": "0865db2f3f48c6bf32c642ede7f9ea7a52927b64148881f7085986340d2cde9a",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-13-shared-space-proof-export-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-13/shared-space-proof-export-tests.txt",
+      "sha256": "48f61fe44045f0dcd08b30af3edb0007003928ab48c619fe601bdd21d3f7337e",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
     }
   ],
   "commerce": {
@@ -851,7 +901,8 @@
     9,
     10,
     11,
-    12
+    12,
+    13
   ],
   "features": [
     {
@@ -1184,6 +1235,29 @@
       "protocolVersions": {
         "releaseEvidence": 1,
         "extensionManifest": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": null
+    },
+    {
+      "id": "shared-space-sovereignty",
+      "name": "Family, team, and organizational shared-space sovereignty",
+      "repository": "core",
+      "state": "AdversariallyVerified",
+      "usesDigitalRepresentative": false,
+      "signedArtifactNames": [],
+      "evidenceIds": [
+        "slice-13-exit-gate",
+        "slice-13-exit-gate-tests",
+        "slice-13-shared-space-kernel-tests",
+        "slice-13-shared-space-vault-tests",
+        "slice-13-shared-space-proof-export-tests"
+      ],
+      "protocolVersions": {
+        "releaseEvidence": 1
       },
       "modelRuntimeHashes": [],
       "confidentialWorkloadMeasurements": [],

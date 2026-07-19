@@ -1,0 +1,11 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+ RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+
+ ✓ packages/vault/tests/shared-space.test.ts (3 tests) 49ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  11:35:40
+   Duration  481ms (transform 201ms, setup 97ms, import 239ms, tests 49ms, environment 0ms)
+
