@@ -82,6 +82,9 @@ import type {
   VaultSurfaceStatus,
   VaultSurfaceExport,
   VaultDeleteSourceResult,
+  WorkActionView,
+  WorkApproveActionResult,
+  ActionReceipt,
 } from './types.js';
 
 // ─── Hardware / Onboarding ──────────────────────────────────────────────────
@@ -1512,6 +1515,24 @@ export function exportVaultSnapshot(): Promise<VaultSurfaceExport> {
 
 export function deleteVaultSource(sourceId: string): Promise<VaultDeleteSourceResult> {
   return sidecarCall<VaultDeleteSourceResult>('vault:delete_source', { sourceId });
+}
+
+// ─── Work / Proof ─────────────────────────────────────────────────────────
+
+export function listWorkActions(limit = 100, offset = 0): Promise<WorkActionView[]> {
+  return sidecarCall<WorkActionView[]>('work:list_actions', { limit, offset });
+}
+
+export function getWorkAction(actionId: string): Promise<WorkActionView> {
+  return sidecarCall<WorkActionView>('work:get_action', { actionId });
+}
+
+export function approveWorkAction(actionId: string): Promise<WorkApproveActionResult> {
+  return sidecarCall<WorkApproveActionResult>('work:approve_action', { actionId });
+}
+
+export function getActionReceipt(actionId: string): Promise<ActionReceipt> {
+  return sidecarCall<ActionReceipt>('proof:get_receipt', { actionId });
 }
 
 // ─── Cloud Bridge ──────────────────────────────────────────────────────────

@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@semblance/kernel": "workspace:*",
     "@semblance/protocol": "workspace:*",
     "@lancedb/lancedb": "^0.26.2",
     "@noble/curves": "^1.9.7",

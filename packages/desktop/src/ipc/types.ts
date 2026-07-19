@@ -1213,3 +1213,63 @@ export interface VaultDeleteSourceResult {
     documentCount: number;
   };
 }
+
+export type WorkActionState =
+  | 'proposed'
+  | 'approved'
+  | 'rejected'
+  | 'dispatched'
+  | 'completed'
+  | 'failed'
+  | 'unknown';
+
+export interface WorkActionReversible {
+  readonly reversible: true;
+  readonly undoToken: string;
+  readonly undoExpiresAt: string;
+  readonly undoHint?: string;
+}
+
+export interface WorkActionView {
+  readonly actionId: string;
+  readonly requestId: string;
+  readonly actionType: string;
+  readonly state: WorkActionState;
+  readonly capability: string;
+  readonly autonomyRationale: string;
+  readonly auditCorrelationId: string;
+  readonly payloadHash: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly auditPendingId?: string;
+  readonly failureReason?: string;
+  readonly reversible?: WorkActionReversible;
+}
+
+export interface WorkApproveActionResult {
+  readonly success: boolean;
+  readonly action?: WorkActionView;
+  readonly error?: { code: string; message: string };
+}
+
+export interface ActionReceiptPayload {
+  readonly schemaVersion: 1;
+  readonly actionId: string;
+  readonly requestId: string;
+  readonly actionType: string;
+  readonly state: WorkActionState;
+  readonly auditCorrelationId: string;
+  readonly auditPendingId?: string;
+  readonly payloadHash: string;
+  readonly auditChainHeadHash: string | null;
+  readonly completedAt: string;
+}
+
+export interface ActionReceipt {
+  readonly schemaVersion: 1;
+  readonly payload: ActionReceiptPayload;
+  readonly signature: {
+    readonly algorithm: 'hmac-sha256' | 'ed25519';
+    readonly value: string;
+  };
+}

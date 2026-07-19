@@ -16,6 +16,9 @@ import { nanoid } from 'nanoid';
 import type { ApprovalPattern } from './approval-patterns.js';
 import type { AutonomyManager } from './autonomy.js';
 import type { AutonomyTier, AutonomyDomain } from './types.js';
+import {
+  capabilityEscalationWouldHelp,
+} from './autonomy-capability-evaluator.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -218,10 +221,16 @@ export class EscalationEngine {
 
       const currentTier = this.autonomy.getDomainTier(domain);
 
-      // Guardian → Partner check
+      // Guardian → Partner check (per capability — success in one does not grant another)
       if (currentTier === 'guardian') {
         const threshold = ESCALATION_THRESHOLDS.guardian_to_partner.threshold;
-        if (pattern.consecutiveApprovals >= threshold) {
+        if (
+          pattern.consecutiveApprovals >= threshold
+          && capabilityEscalationWouldHelp(
+            pattern.actionType,
+            pattern.consecutiveApprovals,
+          )
+        ) {
           const prompt = this.maybeCreatePrompt({
             type: 'guardian_to_partner',
             domain,

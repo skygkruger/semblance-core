@@ -101,11 +101,10 @@ describe('Alter Ego Verification — Autonomy Behavior Matrix', () => {
       expect(mgr.decide('email.send')).toBe('requires_approval');
     });
 
-    // INTENTIONAL: email.send still requires approval even in Alter Ego.
-    // This is documented at autonomy.ts:184 and is current-correct behavior.
-    it('Alter Ego: requires_approval (intentional — email sends always need approval)', () => {
+    it('Alter Ego: auto_approve for routine sends, approval for high-stakes', () => {
       const mgr = createManager('email', 'alter_ego');
-      expect(mgr.decide('email.send')).toBe('requires_approval');
+      expect(mgr.decide('email.send', { to: ['user@example.com'] })).toBe('auto_approve');
+      expect(mgr.decide('email.send', { sensitivity: 95 })).toBe('requires_approval');
     });
   });
 

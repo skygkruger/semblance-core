@@ -19,7 +19,11 @@
   },
   "dependencies": {
     "@semblance/protocol": "workspace:*",
+    "better-sqlite3": "^12.6.2",
     "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13"
   },
   "license": "MIT"
 }

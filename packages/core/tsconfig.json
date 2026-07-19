@@ -16,6 +16,6 @@
     "noEmit": true
   },
   "include": ["llm/**/*.ts", "knowledge/**/*.ts", "agent/**/*.ts", "types/**/*.ts", "extensions/**/*.ts", "skills/**/*.ts", "security/**/*.ts", "credentials/**/*.ts", "index.ts"],
-  "references": [{ "path": "../protocol" }],
+  "references": [{ "path": "../protocol" }, { "path": "../kernel" }],
   "exclude": ["node_modules", "dist"]
 }

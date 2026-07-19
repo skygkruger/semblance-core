@@ -41,8 +41,40 @@ export {
   kernelCloudApiKey,
   kernelCloudMetadataKey,
 } from './keys/key-store.js';
+export {
+  ConnectorSecretStore,
+  createConnectorSecretStore,
+  connectorSecretKey,
+  migrateLegacyOAuthTokensToKernel,
+  type ConnectorSecretKind,
+  type LegacyOAuthMigrationResult,
+} from './credentials/connector-secret-store.js';
+export {
+  CapabilityScopedCredentialService,
+  createCapabilityScopedCredentialService,
+  type CapabilityScopedCredentialConfig,
+  type CredentialAccessGrant,
+  type IssueCredentialAccessParams,
+} from './credentials/capability-scoped-credential.js';
+export {
+  CredentialAccessError,
+  type CredentialAccessErrorCode,
+} from './credentials/credential-access-error.js';
 export { createConsentStore, type ConsentStore, type ConsentReceipt } from './policy/consent-store.js';
 export { createCapabilityIssuer, type IssueCapabilityRequest } from './policy/capability-issuer.js';
+export {
+  AUTONOMY_CAPABILITY_MAP,
+  CAPABILITY_ACTION_TYPES,
+  evaluateAutonomyCapability,
+  extractActionDestination,
+  isCapabilityScopedAction,
+  capabilityEscalationWouldHelp,
+  type AutonomyTier,
+  type CapabilityActionType,
+  type CapabilityPolicy,
+  type EvaluateAutonomyCapabilityInput,
+  type AutonomyCapabilityEvaluation,
+} from './policy/autonomy-capability-map.js';
 export {
   createKernelIpcHandlers,
   type ProcessHelloRequest,
@@ -84,3 +116,40 @@ export {
 export { adaptLegacySemKey, LEGACY_SEM_SIGNATURE_PREFIX } from './entitlement/legacy-adapter.js';
 export { isReservationArtifact } from './entitlement/reservation-guard.js';
 export { entitlementSigningPayload } from './entitlement/signing-payload.js';
+export {
+  type ActionState,
+  type ActionEvent,
+  type ActionRecord,
+  type ReversibleActionMetadata,
+  type CreateActionRecordParams,
+  REVERSIBLE_ACTION_TYPES,
+  IllegalActionTransitionError,
+  ActionReconcileBlockedError,
+} from './actions/types.js';
+export {
+  applyTransition,
+  isLegalTransition,
+  nextState,
+  listLegalEvents,
+  listAllStates,
+  listAllEvents,
+} from './actions/state-machine.js';
+export {
+  ActionLifecycleStore,
+  createActionLifecycleStore,
+  createInMemoryActionLifecycleStore,
+} from './actions/idempotency-store.js';
+export {
+  reconcileUnknownAction,
+  applyReconcileOutcome,
+  assertSafeToRedispatch,
+  type ExternalConfirmationChecker,
+  type ExternalConfirmationResult,
+  type ReconcileOutcome,
+} from './actions/reconciler.js';
+export {
+  executeAuditedAction,
+  approveAndDispatchAction,
+  type ExecuteAuditedActionParams,
+  type ExecuteAuditedActionResult,
+} from './actions/lifecycle.js';

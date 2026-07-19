@@ -67,10 +67,16 @@ describe('AutonomyManager', () => {
       expect(manager.decide('service.api_call')).toBe('auto_approve');
     });
 
-    it('still requires approval for email.send', () => {
+    it('still requires approval for high-stakes email.send', () => {
       const manager = new AutonomyManager(db as unknown as DatabaseHandle, { defaultTier: 'alter_ego', domainOverrides: {} });
 
-      expect(manager.decide('email.send')).toBe('requires_approval');
+      expect(manager.decide('email.send', { sensitivity: 95 })).toBe('requires_approval');
+    });
+
+    it('auto-approves routine email.send at alter ego', () => {
+      const manager = new AutonomyManager(db as unknown as DatabaseHandle, { defaultTier: 'alter_ego', domainOverrides: {} });
+
+      expect(manager.decide('email.send', { to: ['user@example.com'] })).toBe('auto_approve');
     });
   });
 

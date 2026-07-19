@@ -17,9 +17,13 @@
     "baseUrl": "..",
     "paths": {
       "@semblance/core": ["core/index.ts"],
-      "@semblance/core/*": ["core/*"]
+      "@semblance/core/*": ["core/*"],
+      "@semblance/kernel": ["kernel/src/index.ts"],
+      "@semblance/kernel/*": ["kernel/src/*"],
+      "@semblance/vault": ["vault/src/index.ts"],
+      "@semblance/vault/*": ["vault/src/*"]
     }
   },
-  "include": ["ipc/**/*.ts", "services/**/*.ts", "security/**/*.ts", "audit/**/*.ts", "monitor/**/*.ts", "credentials/**/*.ts", "cloud-bridge/**/*.ts", "events/**/*.ts", "canvas/**/*.ts", "tools/**/*.ts", "index.ts"],
+  "include": ["ipc/**/*.ts", "services/**/*.ts", "security/**/*.ts", "audit/**/*.ts", "monitor/**/*.ts", "credentials/**/*.ts", "cloud-bridge/**/*.ts", "events/**/*.ts", "canvas/**/*.ts", "tools/**/*.ts", "ingress/**/*.ts", "index.ts"],
   "exclude": ["node_modules", "dist"]
 }

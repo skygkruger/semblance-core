@@ -87,6 +87,9 @@ importers:
       '@noble/curves':
         specifier: ^1.9.7
         version: 1.9.7
+      '@semblance/kernel':
+        specifier: workspace:*
+        version: link:../kernel
       '@semblance/protocol':
         specifier: workspace:*
         version: link:../protocol
@@ -251,6 +254,15 @@ importers:
       '@mozilla/readability':
         specifier: ^0.6.0
         version: 0.6.0
+      '@semblance/kernel':
+        specifier: workspace:*
+        version: link:../kernel
+      '@semblance/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      '@semblance/vault':
+        specifier: workspace:*
+        version: link:../vault
       better-sqlite3:
         specifier: ^11.0.0
         version: 11.10.0
@@ -285,9 +297,16 @@ importers:
       '@semblance/protocol':
         specifier: workspace:*
         version: link:../protocol
+      better-sqlite3:
+        specifier: ^12.6.2
+        version: 12.6.2
       zod:
         specifier: ^3.22.0
         version: 3.25.76
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: ^7.6.13
+        version: 7.6.13
 
   packages/mobile:
     dependencies:
@@ -382,6 +401,28 @@ importers:
       typescript:
         specifier: ^5.6.0
         version: 5.9.3
+
+  packages/proof:
+    dependencies:
+      '@semblance/gateway':
+        specifier: workspace:*
+        version: link:../gateway
+      '@semblance/kernel':
+        specifier: workspace:*
+        version: link:../kernel
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: ^7.6.13
+        version: 7.6.13
+      better-sqlite3:
+        specifier: ^12.6.2
+        version: 12.6.2
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@25.3.0)(jiti@1.21.7)(jsdom@28.1.0(@noble/hashes@1.8.0))(terser@5.46.0)(tsx@4.21.0)
 
   packages/protocol:
     dependencies:

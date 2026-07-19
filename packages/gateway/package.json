@@ -11,6 +11,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@semblance/kernel": "workspace:*",
+    "@semblance/protocol": "workspace:*",
+    "@semblance/vault": "workspace:*",
     "@mozilla/readability": "^0.6.0",
     "better-sqlite3": "^11.0.0",
     "imapflow": "^1.0.170",

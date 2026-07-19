@@ -6,8 +6,24 @@
 
 import type Database from 'better-sqlite3';
 import { encryptPassword, decryptPassword, getEncryptionKey } from '../credentials/encryption.js';
+import type { CredentialCapabilityClient } from '../credentials/credential-capability-client.js';
 import type { KeychainStore } from '@semblance/core';
 import { keychainOAuthServiceName, MIGRATED_SENTINEL } from '@semblance/core';
+
+export interface ConnectorSecretStoreLike {
+  setSecret(
+    provider: string,
+    kind: 'access_token' | 'refresh_token',
+    value: string,
+    accountId?: string,
+  ): Promise<void>;
+  deleteAllSecrets(provider: string, accountId?: string): Promise<void>;
+}
+
+export interface OAuthTokenManagerOptions {
+  connectorSecretStore?: ConnectorSecretStoreLike;
+  credentialClient?: CredentialCapabilityClient;
+}
 
 export interface OAuthTokens {
   provider: string;
@@ -46,12 +62,57 @@ export class OAuthTokenManager {
   private db: Database.Database;
   private encryptionKey: Buffer;
   private keychain: KeychainStore | null;
+  private connectorSecretStore: ConnectorSecretStoreLike | null;
+  private credentialClient: CredentialCapabilityClient | null;
 
-  constructor(db: Database.Database, encryptionKeyPath?: string, keychain?: KeychainStore) {
+  constructor(
+    db: Database.Database,
+    encryptionKeyPath?: string,
+    keychain?: KeychainStore,
+    options?: OAuthTokenManagerOptions,
+  ) {
     this.db = db;
     this.db.exec(CREATE_TABLE);
     this.encryptionKey = getEncryptionKey(encryptionKeyPath);
     this.keychain = keychain ?? null;
+    this.connectorSecretStore = options?.connectorSecretStore ?? null;
+    this.credentialClient = options?.credentialClient ?? null;
+  }
+
+  private persistSecretsToKernelStore(
+    provider: string,
+    accessToken: string,
+    refreshToken: string,
+    accountId?: string,
+  ): { encryptedAccess: string; encryptedRefresh: string } {
+    if (!this.connectorSecretStore) {
+      return {
+        encryptedAccess: encryptPassword(this.encryptionKey, accessToken),
+        encryptedRefresh: encryptPassword(this.encryptionKey, refreshToken),
+      };
+    }
+
+    void this.connectorSecretStore
+      .setSecret(provider, 'access_token', accessToken, accountId)
+      .catch((err: unknown) => {
+        console.error(
+          `[OAuthTokenManager] Failed to store access token in kernel store for ${accountId ?? provider}:`,
+          err,
+        );
+      });
+    void this.connectorSecretStore
+      .setSecret(provider, 'refresh_token', refreshToken, accountId)
+      .catch((err: unknown) => {
+        console.error(
+          `[OAuthTokenManager] Failed to store refresh token in kernel store for ${accountId ?? provider}:`,
+          err,
+        );
+      });
+
+    return {
+      encryptedAccess: MIGRATED_SENTINEL,
+      encryptedRefresh: MIGRATED_SENTINEL,
+    };
   }
 
   /** Store (or update) OAuth tokens for a provider. */
@@ -59,7 +120,13 @@ export class OAuthTokenManager {
     let encryptedAccess: string;
     let encryptedRefresh: string;
 
-    if (this.keychain) {
+    if (this.connectorSecretStore) {
+      ({ encryptedAccess, encryptedRefresh } = this.persistSecretsToKernelStore(
+        tokens.provider,
+        tokens.accessToken,
+        tokens.refreshToken,
+      ));
+    } else if (this.keychain) {
       // Store tokens in keychain, use sentinel in SQLite
       const service = keychainOAuthServiceName(tokens.provider);
       this.keychain.set(service, 'access_token', tokens.accessToken).catch((err) => {
@@ -105,7 +172,6 @@ export class OAuthTokenManager {
 
     if (!row) return null;
     if (row.access_token_encrypted === MIGRATED_SENTINEL) {
-      // Token is in keychain — caller must use getAccessTokenAsync()
       return null;
     }
     return decryptPassword(this.encryptionKey, row.access_token_encrypted);
@@ -113,6 +179,16 @@ export class OAuthTokenManager {
 
   /** Get access token with keychain support (async). */
   async getAccessTokenAsync(provider: string): Promise<string | null> {
+    if (this.credentialClient) {
+      return this.credentialClient.getAccessToken(
+        provider,
+        undefined,
+        `Read OAuth access token for ${provider}`,
+      );
+    }
+    if (this.connectorSecretStore) {
+      return null;
+    }
     if (this.keychain) {
       const service = keychainOAuthServiceName(provider);
       const fromKeychain = await this.keychain.get(service, 'access_token');
@@ -136,6 +212,16 @@ export class OAuthTokenManager {
 
   /** Get refresh token with keychain support (async). */
   async getRefreshTokenAsync(provider: string): Promise<string | null> {
+    if (this.credentialClient) {
+      return this.credentialClient.getRefreshToken(
+        provider,
+        undefined,
+        `Read OAuth refresh token for ${provider}`,
+      );
+    }
+    if (this.connectorSecretStore) {
+      return null;
+    }
     if (this.keychain) {
       const service = keychainOAuthServiceName(provider);
       const fromKeychain = await this.keychain.get(service, 'refresh_token');
@@ -159,7 +245,43 @@ export class OAuthTokenManager {
    * Caller provides the actual HTTP call result — this method just stores the new tokens.
    */
   refreshAccessToken(provider: string, newAccessToken: string, newExpiresAt: number, newRefreshToken?: string): void {
-    if (this.keychain) {
+    if (this.connectorSecretStore) {
+      void this.connectorSecretStore
+        .setSecret(provider, 'access_token', newAccessToken)
+        .catch((err: unknown) => {
+          console.error(
+            `[OAuthTokenManager] Failed to refresh access token in kernel store for ${provider}:`,
+            err,
+          );
+        });
+
+      if (newRefreshToken) {
+        void this.connectorSecretStore
+          .setSecret(provider, 'refresh_token', newRefreshToken)
+          .catch((err: unknown) => {
+            console.error(
+              `[OAuthTokenManager] Failed to refresh refresh token in kernel store for ${provider}:`,
+              err,
+            );
+          });
+        this.db.prepare(`
+          UPDATE oauth_tokens SET
+            access_token_encrypted = ?,
+            refresh_token_encrypted = ?,
+            expires_at = ?,
+            updated_at = datetime('now')
+          WHERE provider = ?
+        `).run(MIGRATED_SENTINEL, MIGRATED_SENTINEL, newExpiresAt, provider);
+      } else {
+        this.db.prepare(`
+          UPDATE oauth_tokens SET
+            access_token_encrypted = ?,
+            expires_at = ?,
+            updated_at = datetime('now')
+          WHERE provider = ?
+        `).run(MIGRATED_SENTINEL, newExpiresAt, provider);
+      }
+    } else if (this.keychain) {
       // Store in keychain, sentinel in SQLite
       const service = keychainOAuthServiceName(provider);
       this.keychain.set(service, 'access_token', newAccessToken).catch((err) => {
@@ -214,6 +336,10 @@ export class OAuthTokenManager {
   /** Revoke all tokens for a provider (delete from storage + keychain). */
   revokeTokens(provider: string): void {
     this.db.prepare('DELETE FROM oauth_tokens WHERE provider = ?').run(provider);
+
+    if (this.connectorSecretStore) {
+      void this.connectorSecretStore.deleteAllSecrets(provider).catch(() => {});
+    }
 
     // Clean up keychain entries
     if (this.keychain) {
@@ -322,7 +448,14 @@ export class OAuthTokenManager {
     let encryptedAccess: string;
     let encryptedRefresh: string;
 
-    if (this.keychain) {
+    if (this.connectorSecretStore) {
+      ({ encryptedAccess, encryptedRefresh } = this.persistSecretsToKernelStore(
+        tokens.provider,
+        tokens.accessToken,
+        tokens.refreshToken,
+        tokens.accountId,
+      ));
+    } else if (this.keychain) {
       const service = keychainOAuthServiceName(tokens.accountId);
       this.keychain.set(service, 'access_token', tokens.accessToken).catch(() => {});
       this.keychain.set(service, 'refresh_token', tokens.refreshToken).catch(() => {});
@@ -365,6 +498,20 @@ export class OAuthTokenManager {
 
   /** Get access token for a specific account ID (async, keychain-aware). */
   async getAccountAccessTokenAsync(accountId: string): Promise<string | null> {
+    const row = this.db.prepare(
+      'SELECT provider FROM oauth_tokens WHERE account_id = ?',
+    ).get(accountId) as { provider: string } | undefined;
+
+    if (this.credentialClient) {
+      return this.credentialClient.getAccessToken(
+        row?.provider ?? accountId.split(':')[0] ?? accountId,
+        accountId,
+        `Read OAuth access token for ${accountId}`,
+      );
+    }
+    if (this.connectorSecretStore) {
+      return null;
+    }
     if (this.keychain) {
       const service = keychainOAuthServiceName(accountId);
       const fromKeychain = await this.keychain.get(service, 'access_token');
@@ -380,6 +527,20 @@ export class OAuthTokenManager {
 
   /** Get refresh token for a specific account ID (async, keychain-aware). */
   async getAccountRefreshTokenAsync(accountId: string): Promise<string | null> {
+    const row = this.db.prepare(
+      'SELECT provider FROM oauth_tokens WHERE account_id = ?',
+    ).get(accountId) as { provider: string } | undefined;
+
+    if (this.credentialClient) {
+      return this.credentialClient.getRefreshToken(
+        row?.provider ?? accountId.split(':')[0] ?? accountId,
+        accountId,
+        `Read OAuth refresh token for ${accountId}`,
+      );
+    }
+    if (this.connectorSecretStore) {
+      return null;
+    }
     if (this.keychain) {
       const service = keychainOAuthServiceName(accountId);
       const fromKeychain = await this.keychain.get(service, 'refresh_token');
@@ -395,7 +556,28 @@ export class OAuthTokenManager {
 
   /** Refresh access token for a specific account (by account_id). */
   refreshAccountAccessToken(accountId: string, newAccessToken: string, newExpiresAt: number, newRefreshToken?: string): void {
-    if (this.keychain) {
+    const row = this.db.prepare(
+      'SELECT provider FROM oauth_tokens WHERE account_id = ?',
+    ).get(accountId) as { provider: string } | undefined;
+    const provider = row?.provider ?? accountId.split(':')[0] ?? accountId;
+
+    if (this.connectorSecretStore) {
+      void this.connectorSecretStore
+        .setSecret(provider, 'access_token', newAccessToken, accountId)
+        .catch(() => {});
+      if (newRefreshToken) {
+        void this.connectorSecretStore
+          .setSecret(provider, 'refresh_token', newRefreshToken, accountId)
+          .catch(() => {});
+        this.db.prepare(`
+          UPDATE oauth_tokens SET access_token_encrypted = ?, refresh_token_encrypted = ?, expires_at = ?, updated_at = datetime('now') WHERE account_id = ?
+        `).run(MIGRATED_SENTINEL, MIGRATED_SENTINEL, newExpiresAt, accountId);
+      } else {
+        this.db.prepare(`
+          UPDATE oauth_tokens SET access_token_encrypted = ?, expires_at = ?, updated_at = datetime('now') WHERE account_id = ?
+        `).run(MIGRATED_SENTINEL, newExpiresAt, accountId);
+      }
+    } else if (this.keychain) {
       const service = keychainOAuthServiceName(accountId);
       this.keychain.set(service, 'access_token', newAccessToken).catch(() => {});
       if (newRefreshToken) {
@@ -524,7 +706,16 @@ export class OAuthTokenManager {
 
   /** Remove a specific account. */
   removeAccount(accountId: string): void {
+    const row = this.db.prepare('SELECT provider FROM oauth_tokens WHERE account_id = ?')
+      .get(accountId) as { provider: string } | undefined;
+
     this.db.prepare('DELETE FROM oauth_tokens WHERE account_id = ?').run(accountId);
+
+    if (this.connectorSecretStore) {
+      void this.connectorSecretStore
+        .deleteAllSecrets(row?.provider ?? accountId.split(':')[0] ?? accountId, accountId)
+        .catch(() => {});
+    }
 
     if (this.keychain) {
       const service = keychainOAuthServiceName(accountId);

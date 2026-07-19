@@ -10,9 +10,17 @@ function preferTsOverJs() {
     name: 'prefer-ts-over-js',
     enforce: 'pre' as const,
     resolveId(source: string, importer: string | undefined) {
-      if (!importer || !source.endsWith('.js')) return null;
+      if (!source.endsWith('.js')) return null;
+      if (source.startsWith('@semblance/core/')) {
+        const subpath = source.slice('@semblance/core/'.length);
+        const jsPath = resolve(__dirname, 'packages/core', subpath);
+        const tsPath = jsPath.replace(/\.js$/, '.ts');
+        if (existsSync(tsPath)) return tsPath;
+        const tsxPath = jsPath.replace(/\.js$/, '.tsx');
+        if (existsSync(tsxPath)) return tsxPath;
+      }
       // Resolve relative .js imports to .ts/.tsx source when both exist
-      if (source.startsWith('.')) {
+      if (source.startsWith('.') && importer) {
         const dir = importer.substring(0, Math.max(importer.lastIndexOf('/'), importer.lastIndexOf('\\')));
         const jsPath = resolve(dir, source);
         // Try .ts first, then .tsx
@@ -32,35 +40,41 @@ export default defineConfig({
     'process.env.NODE_ENV': '"test"',
   },
   test: {
-    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
+    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx', 'packages/*/tests/**/*.test.ts'],
     testTimeout: 10000,
     setupFiles: ['./tests/setup/dom-setup.ts'],
   },
   resolve: {
     extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.jsx', '.js', '.json'],
-    alias: {
-      '@semblance/core': resolve(__dirname, 'packages/core'),
-      '@semblance/vault': resolve(__dirname, 'packages/vault'),
-      '@semblance/protocol': resolve(__dirname, 'packages/protocol'),
-      '@semblance/gateway': resolve(__dirname, 'packages/gateway'),
-      '@semblance/ui': resolve(__dirname, 'packages/semblance-ui'),
-      '@semblance/desktop': resolve(__dirname, 'packages/desktop/src'),
-      '@tauri-apps/api/core': resolve(__dirname, 'tests/helpers/mock-tauri.ts'),
-      '@tauri-apps/api/event': resolve(__dirname, 'tests/helpers/mock-tauri-event.ts'),
-      '@tauri-apps/plugin-dialog': resolve(__dirname, 'tests/helpers/mock-tauri-dialog.ts'),
-      '@semblance/mobile': resolve(__dirname, 'packages/mobile/src'),
-      'react-native': resolve(__dirname, 'tests/helpers/mock-react-native.ts'),
-      '@react-navigation/native-stack': resolve(__dirname, 'tests/helpers/mock-react-navigation.ts'),
-      '@react-navigation/native': resolve(__dirname, 'tests/helpers/mock-react-navigation-native.ts'),
-      'react-native-fs': resolve(__dirname, 'tests/helpers/mock-react-native-fs.ts'),
-      'react-native-webview': resolve(__dirname, 'tests/helpers/mock-react-native-webview.ts'),
-      '@op-engineering/op-sqlite': resolve(__dirname, 'tests/helpers/mock-op-sqlite.ts'),
-      'react-native-device-info': resolve(__dirname, 'tests/helpers/mock-device-info.ts'),
-      '@notifee/react-native': resolve(__dirname, 'tests/helpers/mock-notifee.ts'),
-      'react-native-quick-crypto': resolve(__dirname, 'tests/helpers/mock-quick-crypto.ts'),
-      'react-i18next': resolve(__dirname, 'packages/desktop/node_modules/react-i18next'),
-      'i18next': resolve(__dirname, 'packages/desktop/node_modules/i18next'),
-      'react-router-dom': resolve(__dirname, 'packages/desktop/node_modules/react-router-dom'),
-    },
+    alias: [
+      {
+        find: /^@semblance\/core\/(.+)\.js$/,
+        replacement: `${resolve(__dirname, 'packages/core')}/$1.ts`,
+      },
+      { find: '@semblance/core', replacement: resolve(__dirname, 'packages/core') },
+      { find: '@semblance/vault', replacement: resolve(__dirname, 'packages/vault') },
+      { find: '@semblance/protocol', replacement: resolve(__dirname, 'packages/protocol') },
+      { find: '@semblance/gateway', replacement: resolve(__dirname, 'packages/gateway') },
+      { find: '@semblance/kernel', replacement: resolve(__dirname, 'packages/kernel/src/index.ts') },
+      { find: '@semblance/proof', replacement: resolve(__dirname, 'packages/proof/src/index.ts') },
+      { find: '@semblance/ui', replacement: resolve(__dirname, 'packages/semblance-ui') },
+      { find: '@semblance/desktop', replacement: resolve(__dirname, 'packages/desktop/src') },
+      { find: '@tauri-apps/api/core', replacement: resolve(__dirname, 'tests/helpers/mock-tauri.ts') },
+      { find: '@tauri-apps/api/event', replacement: resolve(__dirname, 'tests/helpers/mock-tauri-event.ts') },
+      { find: '@tauri-apps/plugin-dialog', replacement: resolve(__dirname, 'tests/helpers/mock-tauri-dialog.ts') },
+      { find: '@semblance/mobile', replacement: resolve(__dirname, 'packages/mobile/src') },
+      { find: 'react-native', replacement: resolve(__dirname, 'tests/helpers/mock-react-native.ts') },
+      { find: '@react-navigation/native-stack', replacement: resolve(__dirname, 'tests/helpers/mock-react-navigation.ts') },
+      { find: '@react-navigation/native', replacement: resolve(__dirname, 'tests/helpers/mock-react-navigation-native.ts') },
+      { find: 'react-native-fs', replacement: resolve(__dirname, 'tests/helpers/mock-react-native-fs.ts') },
+      { find: 'react-native-webview', replacement: resolve(__dirname, 'tests/helpers/mock-react-native-webview.ts') },
+      { find: '@op-engineering/op-sqlite', replacement: resolve(__dirname, 'tests/helpers/mock-op-sqlite.ts') },
+      { find: 'react-native-device-info', replacement: resolve(__dirname, 'tests/helpers/mock-device-info.ts') },
+      { find: '@notifee/react-native', replacement: resolve(__dirname, 'tests/helpers/mock-notifee.ts') },
+      { find: 'react-native-quick-crypto', replacement: resolve(__dirname, 'tests/helpers/mock-quick-crypto.ts') },
+      { find: 'react-i18next', replacement: resolve(__dirname, 'packages/desktop/node_modules/react-i18next') },
+      { find: 'i18next', replacement: resolve(__dirname, 'packages/desktop/node_modules/i18next') },
+      { find: 'react-router-dom', replacement: resolve(__dirname, 'packages/desktop/node_modules/react-router-dom') },
+    ],
   },
 });

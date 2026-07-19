@@ -211,9 +211,28 @@ import type { ImportSummary } from '../../../core/importers/import-pipeline.js';
 // OAuth imports (Gateway)
 import { OAuthTokenManager } from '../../../gateway/services/oauth-token-manager.js';
 import { OAuthCallbackServer } from '../../../gateway/services/oauth-callback-server.js';
+import { createCredentialCapabilityClient } from '../../../gateway/credentials/credential-capability-client.js';
+import { getEncryptionKey } from '../../../gateway/credentials/encryption.js';
+import {
+  createConnectorSecretStore,
+  createCapabilityScopedCredentialService,
+  migrateLegacyOAuthTokensToKernel,
+  createMemoryKeyStore,
+} from '../../../kernel/src/index.js';
+import {
+  listWorkActions,
+  getWorkAction,
+  approveWorkAction,
+  getActionReceipt,
+} from '../../../proof/src/index.js';
+import { assertAuditPendingBeforeDispatch } from '../../../gateway/audit/trail.js';
 import { oauthClients, UNCONFIGURED_CLIENT_ID } from '../../../gateway/config/oauth-clients.js';
 import { registerAllConnectors, wireConnectorRouter } from '../../../gateway/services/connector-registration.js';
 import type { ConnectorRouter } from '../../../gateway/services/connector-router.js';
+import {
+  ingressConnectorCalendarEvents,
+  ingressConnectorEmailMessages,
+} from '../../../gateway/ingress/connector-ingress.js';
 
 // Morning Brief / Daily Digest / Weather / Style / Dark Pattern / Document Context / Health / Cloud Storage / Graph Vis
 import { MorningBriefGenerator } from '../../../core/agent/morning-brief.js';
@@ -473,6 +492,10 @@ const activeDownloads: Map<string, ActiveDownload> = new Map();
 
 // OAuth token manager state
 let oauthTokenManager: OAuthTokenManager | null = null;
+const SIDECAR_GATEWAY_PRINCIPAL_ID = 'sidecar-gateway';
+const SIDECAR_GATEWAY_SESSION_ID = 'session-sidecar-gateway';
+let sidecarConnectorCredentialClient: ReturnType<typeof createCredentialCapabilityClient> | null = null;
+let sidecarConnectorSecretStore: ReturnType<typeof createConnectorSecretStore> | null = null;
 // Connector router (lazy-initialized on first sync)
 let connectorRouter: ConnectorRouter | null = null;
 
@@ -1003,6 +1026,18 @@ async function handleInitialize(): Promise<unknown> {
     );
     await Promise.race([core.initialize(), initTimeout]);
     console.error('[sidecar] Core initialized');
+
+    if (gateway && core?.agent?.autonomy) {
+      gateway.setAutonomyHooks({
+        getAutonomyTier: (action, _payload) => {
+          const domain = core.agent.autonomy.getDomainForAction(action);
+          return core.agent.autonomy.getDomainTier(domain);
+        },
+        getPriorApprovalsForCapability: (action, payload) =>
+          core.agent.getApprovalCount(action, payload),
+      });
+      console.error('[sidecar] Gateway autonomy hooks wired');
+    }
   } catch (coreErr) {
     console.error('[sidecar] Core initialization failed (knowledge graph unavailable):', coreErr);
     // Core may be partially initialized — keep it so chat can still work
@@ -5372,13 +5407,57 @@ async function runStyleExtraction(
 
 // ─── Connector Auth Handlers ────────────────────────────────────────────────
 
+function ensureSidecarConnectorCredentialStack(): {
+  secretStore: ReturnType<typeof createConnectorSecretStore>;
+  credentialClient: ReturnType<typeof createCredentialCapabilityClient>;
+} {
+  if (sidecarConnectorSecretStore && sidecarConnectorCredentialClient) {
+    return {
+      secretStore: sidecarConnectorSecretStore,
+      credentialClient: sidecarConnectorCredentialClient,
+    };
+  }
+
+  const keyStore = createMemoryKeyStore();
+  const secretStore = createConnectorSecretStore(keyStore);
+  const scopedCredential = createCapabilityScopedCredentialService({
+    secretStore,
+    localPrincipalId: SIDECAR_GATEWAY_PRINCIPAL_ID,
+    localDeviceId: 'sidecar-local-device',
+    localProcessId: `sidecar-gateway-${process.pid}`,
+  });
+  const credentialClient = createCredentialCapabilityClient({
+    backend: scopedCredential,
+    principalId: SIDECAR_GATEWAY_PRINCIPAL_ID,
+    sessionId: SIDECAR_GATEWAY_SESSION_ID,
+    defaultPurpose: 'Sidecar gateway connector operation',
+  });
+
+  sidecarConnectorSecretStore = secretStore;
+  sidecarConnectorCredentialClient = credentialClient;
+  return { secretStore, credentialClient };
+}
+
 function ensureOAuthTokenManager(): OAuthTokenManager {
   if (oauthTokenManager) return oauthTokenManager;
   if (!prefsDb) throw new Error('Database not initialized');
   const gatewayDataDir = join(dataDir || join(homedir(), '.semblance'), 'gateway');
   if (!existsSync(gatewayDataDir)) mkdirSync(gatewayDataDir, { recursive: true });
   const oauthDb = new Database(join(gatewayDataDir, 'oauth.db'));
-  oauthTokenManager = new OAuthTokenManager(oauthDb);
+  const { secretStore, credentialClient } = ensureSidecarConnectorCredentialStack();
+  oauthTokenManager = new OAuthTokenManager(oauthDb, undefined, undefined, {
+    connectorSecretStore: secretStore,
+    credentialClient,
+  });
+
+  void migrateLegacyOAuthTokensToKernel(
+    oauthDb,
+    secretStore,
+    getEncryptionKey(),
+  ).catch((err: unknown) => {
+    console.error('[sidecar] OAuth token migration to kernel store failed:', err);
+  });
+
   return oauthTokenManager;
 }
 
@@ -5893,6 +5972,7 @@ async function handleConnectorSync(params: { connectorId: string; accountId?: st
             knowledge: core!.knowledge,
             llm: core!.llm,
             eventBus: eventBus ?? undefined,
+            vaultIngest: localVault?.connectorIngestHooks,
           });
           emailIndexer.onEvent((event, data) => emit(event, data));
         }
@@ -5922,6 +6002,25 @@ async function handleConnectorSync(params: { connectorId: string; accountId?: st
         if (fetchResult.success && fetchResult.data) {
           const rawData = fetchResult.data as { messages?: unknown[] } | unknown[];
           const messages = Array.isArray(rawData) ? rawData : (rawData.messages ?? []);
+
+          if (localVault && messages.length > 0) {
+            try {
+              const vaultIngress = ingressConnectorEmailMessages({
+                messages,
+                accountId: syncAccountId,
+                accountEmail: fetchOverrides.userEmailOverride ?? null,
+                eventLog: localVault.eventLog,
+                deviceId: localVault.deviceId,
+                membershipEpoch: localVault.membershipEpoch,
+              });
+              console.error(
+                `[sidecar] Vault email ingress: ${vaultIngress.ingested} ingested, ${vaultIngress.skipped} skipped (account: ${syncAccountId})`,
+              );
+            } catch (vaultIngressErr) {
+              console.error('[sidecar] Vault email ingress failed (non-fatal):', vaultIngressErr);
+            }
+          }
+
           const emailIndexed = await emailIndexer.indexMessages(
             messages as RawEmailMessage[],
             syncAccountId,
@@ -6038,6 +6137,7 @@ async function handleConnectorSync(params: { connectorId: string; accountId?: st
             knowledge: core!.knowledge,
             llm: core!.llm,
             eventBus: eventBus ?? undefined,
+            vaultIngest: localVault?.connectorIngestHooks,
           });
           calendarIndexer.onEvent((event, data) => emit(event, data));
         }
@@ -6121,6 +6221,23 @@ async function handleConnectorSync(params: { connectorId: string; accountId?: st
           reminders: [],
           lastModified: ev.updated ?? new Date().toISOString(),
         }));
+
+        if (localVault && mappedEvents.length > 0) {
+          try {
+            const vaultIngress = ingressConnectorCalendarEvents({
+              events: mappedEvents,
+              accountId: calSyncAccountId,
+              eventLog: localVault.eventLog,
+              deviceId: localVault.deviceId,
+              membershipEpoch: localVault.membershipEpoch,
+            });
+            console.error(
+              `[sidecar] Vault calendar ingress: ${vaultIngress.ingested} ingested, ${vaultIngress.skipped} skipped (account: ${calSyncAccountId})`,
+            );
+          } catch (vaultIngressErr) {
+            console.error('[sidecar] Vault calendar ingress failed (non-fatal):', vaultIngressErr);
+          }
+        }
 
         const calIndexed = await calendarIndexer.indexEvents(mappedEvents, calSyncAccountId);
         console.error(`[sidecar] Post-sync: ${calIndexed} calendar events indexed via REST API (account: ${calSyncAccountId})`);
@@ -10260,6 +10377,117 @@ async function handleRequest(req: Request): Promise<void> {
           }
           const result = localVault.surface.deleteSource(deleteParams.sourceId);
           respond(id, { success: true, deletion: result });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'work:list_actions': {
+        if (!gateway) { respond(id, []); break; }
+        try {
+          const listParams = (params ?? {}) as { limit?: number; offset?: number };
+          const actions = listWorkActions({
+            store: gateway.getActionLifecycleStore(),
+            limit: listParams.limit ?? 100,
+            offset: listParams.offset ?? 0,
+            autonomyTier: 'partner',
+          });
+          respond(id, actions);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'work:get_action': {
+        if (!gateway) { respondError(id, 'Gateway not initialized'); break; }
+        try {
+          const getParams = params as { actionId?: string };
+          if (!getParams.actionId) {
+            respondError(id, 'actionId is required');
+            break;
+          }
+          const action = getWorkAction(
+            gateway.getActionLifecycleStore(),
+            getParams.actionId,
+          );
+          if (!action) {
+            respondError(id, `Action not found: ${getParams.actionId}`);
+            break;
+          }
+          respond(id, action);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'work:approve_action': {
+        if (!gateway) { respondError(id, 'Gateway not initialized'); break; }
+        try {
+          const approveParams = params as { actionId?: string };
+          if (!approveParams.actionId) {
+            respondError(id, 'actionId is required');
+            break;
+          }
+          const record = gateway.getActionLifecycleStore().getRecord(approveParams.actionId);
+          if (!record) {
+            respondError(id, `Action not found: ${approveParams.actionId}`);
+            break;
+          }
+          const result = await approveWorkAction({
+            store: gateway.getActionLifecycleStore(),
+            actionId: approveParams.actionId,
+            idempotencyKey: record.idempotencyKey,
+            requestId: record.requestId,
+            actionType: record.actionType,
+            payloadHash: record.payloadHash,
+            auditCorrelationId: record.auditCorrelationId,
+            logAuditPending: () => gateway!.getAuditTrail().logPending({
+              requestId: record.requestId,
+              action: record.actionType,
+              payloadHash: record.payloadHash,
+              signature: `work-approve:${record.actionId}`,
+            }),
+            assertAuditPendingBeforeDispatch: (auditPendingId) => {
+              assertAuditPendingBeforeDispatch(
+                gateway!.getAuditTrail(),
+                record.requestId,
+                auditPendingId,
+              );
+            },
+            execute: async () => {
+              const adapter = gateway!.getServiceRegistry().getAdapter(record.actionType);
+              return adapter.execute(record.actionType, {});
+            },
+          });
+          respond(id, {
+            success: result.execution.success,
+            action: getWorkAction(gateway.getActionLifecycleStore(), result.record.actionId),
+            error: result.execution.error,
+          });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'proof:get_receipt': {
+        if (!gateway) { respondError(id, 'Gateway not initialized'); break; }
+        try {
+          const receiptParams = params as { actionId?: string };
+          if (!receiptParams.actionId) {
+            respondError(id, 'actionId is required');
+            break;
+          }
+          const receipt = getActionReceipt({
+            store: gateway.getActionLifecycleStore(),
+            auditTrail: gateway.getAuditTrail(),
+            actionId: receiptParams.actionId,
+            signingKey: gateway.getSigningKey(),
+          });
+          respond(id, receipt);
         } catch (err) {
           respondError(id, (err as Error).message);
         }

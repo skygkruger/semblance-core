@@ -17,6 +17,8 @@ import { AnomalyDetector } from './security/anomaly-detector.js';
 import { ServiceRegistry } from './services/registry.js';
 import { GatewayTransport } from './ipc/transport.js';
 import { validateAndExecute } from './ipc/validator.js';
+import type { AutonomyEvaluationHooks } from './ipc/validator.js';
+import { createActionLifecycleStore } from '@semblance/kernel';
 import { ReminderAdapter } from './services/reminder-adapter.js';
 import { WebSearchAdapterFactory } from './services/web-search-factory.js';
 import { WebFetchAdapter } from './services/web-fetch-adapter.js';
@@ -43,6 +45,8 @@ export interface GatewayConfig {
   rateLimiter?: ConstructorParameters<typeof RateLimiter>[0];
   /** Anomaly detector configuration overrides. */
   anomalyDetector?: ConstructorParameters<typeof AnomalyDetector>[0];
+  /** Optional autonomy hooks wired after Core initializes. */
+  autonomyHooks?: import('./ipc/validator.js').AutonomyEvaluationHooks;
 }
 
 export class Gateway {
@@ -51,15 +55,27 @@ export class Gateway {
   private configDb: Database.Database | null = null;
   private reminderDb: Database.Database | null = null;
   private auditTrail: AuditTrail | null = null;
+  private actionLifecycleDb: Database.Database | null = null;
+  private actionLifecycleStore: ReturnType<typeof createActionLifecycleStore> | null = null;
+  private keyManager: KeyManager | null = null;
   private allowlist: Allowlist | null = null;
   private rateLimiter: RateLimiter | null = null;
   private anomalyDetector: AnomalyDetector | null = null;
   private serviceRegistry: ServiceRegistry | null = null;
   private oauthTokenManager: OAuthTokenManager | null = null;
   private config: GatewayConfig;
+  private autonomyHooks: AutonomyEvaluationHooks = {};
 
   constructor(config?: GatewayConfig) {
     this.config = config ?? {};
+    this.autonomyHooks = config?.autonomyHooks ?? {};
+  }
+
+  /**
+   * Wire autonomy tier and per-capability approval lookups after Core is ready.
+   */
+  setAutonomyHooks(hooks: AutonomyEvaluationHooks): void {
+    this.autonomyHooks = hooks;
   }
 
   /**
@@ -78,12 +94,14 @@ export class Gateway {
     // Initialize SQLite databases
     this.auditDb = new Database(join(dataDir, 'audit.db'));
     this.configDb = new Database(join(dataDir, 'config.db'));
+    this.actionLifecycleDb = new Database(join(dataDir, 'actions.db'));
 
     // Initialize components
     this.auditTrail = new AuditTrail(this.auditDb);
+    this.actionLifecycleStore = createActionLifecycleStore(this.actionLifecycleDb);
     this.allowlist = new Allowlist(this.configDb);
-    const keyManager = new KeyManager(this.configDb);
-    const signingKey = keyManager.getKey();
+    this.keyManager = new KeyManager(this.configDb);
+    const signingKey = this.keyManager.getKey();
 
     // Write the signing key to a shared file so the Core process can read it
     const signingKeyPath = this.config.signingKeyPath ?? join(homedir(), '.semblance', 'signing.key');
@@ -91,7 +109,7 @@ export class Gateway {
     if (!existsSync(signingKeyDir)) {
       mkdirSync(signingKeyDir, { recursive: true });
     }
-    keyManager.writeKeyFile(signingKeyPath);
+    this.keyManager.writeKeyFile(signingKeyPath);
 
     this.rateLimiter = new RateLimiter(this.config.rateLimiter);
     this.anomalyDetector = new AnomalyDetector(this.config.anomalyDetector);
@@ -246,6 +264,9 @@ export class Gateway {
           rateLimiter: this.rateLimiter!,
           anomalyDetector: this.anomalyDetector!,
           serviceRegistry: this.serviceRegistry!,
+          actionLifecycleStore: this.actionLifecycleStore!,
+          getAutonomyTier: this.autonomyHooks.getAutonomyTier,
+          getPriorApprovalsForCapability: this.autonomyHooks.getPriorApprovalsForCapability,
         });
       },
       onError: (error: Error) => {
@@ -288,6 +309,12 @@ export class Gateway {
     if (this.auditDb) {
       this.auditDb.close();
       this.auditDb = null;
+    }
+
+    if (this.actionLifecycleDb) {
+      this.actionLifecycleDb.close();
+      this.actionLifecycleDb = null;
+      this.actionLifecycleStore = null;
     }
 
     if (this.configDb) {
@@ -333,6 +360,22 @@ export class Gateway {
   getServiceRegistry(): ServiceRegistry {
     if (!this.serviceRegistry) throw new Error('Gateway not started');
     return this.serviceRegistry;
+  }
+
+  /**
+   * Get the kernel action lifecycle store (proposed/dispatched/completed actions).
+   */
+  getActionLifecycleStore(): ReturnType<typeof createActionLifecycleStore> {
+    if (!this.actionLifecycleStore) throw new Error('Gateway not started');
+    return this.actionLifecycleStore;
+  }
+
+  /**
+   * Get the Gateway HMAC signing key for action receipt proofs.
+   */
+  getSigningKey(): Buffer {
+    if (!this.keyManager) throw new Error('Gateway not started');
+    return this.keyManager.getKey();
   }
 
   /**
@@ -425,7 +468,7 @@ export class Gateway {
 }
 
 // Re-export key types and classes for consumers
-export { AuditTrail } from './audit/trail.js';
+export { AuditTrail, assertAuditPendingBeforeDispatch, AuditPendingMissingError } from './audit/trail.js';
 export { TIME_SAVED_DEFAULTS, TIME_SAVED_GRANULAR, getDefaultTimeSaved } from './audit/time-saved-defaults.js';
 export { Allowlist } from './security/allowlist.js';
 export { KeyManager } from './security/signing.js';
@@ -447,7 +490,7 @@ export { WebFetchAdapter } from './services/web-fetch-adapter.js';
 export type { SearchProvider, WebSearchFactoryConfig } from './services/web-search-factory.js';
 export type { ServiceAdapter } from './services/types.js';
 export type { TransportConfig } from './ipc/transport.js';
-export type { ValidatorDeps } from './ipc/validator.js';
+export type { ValidatorDeps, AutonomyEvaluationHooks } from './ipc/validator.js';
 export type { ServiceCredential, ServiceCredentialInput, ConnectionTestResult, ProviderPreset } from './credentials/types.js';
 export type { EmailMessage, EmailAddress, EmailFetchParams, EmailSendParams } from './services/email/types.js';
 export type { CalendarEvent, CalendarInfo, CalendarFetchParams, CalendarCreateParams, CalendarUpdateParams } from './services/calendar/types.js';
