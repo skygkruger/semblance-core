@@ -299,3 +299,141 @@ h1.cloud-bridge__title.page-title {
   border: 1px solid rgba(56, 189, 248, 0.08);
   margin-top: 8px;
 }
+
+h1.cloud-bridge__title--capabilities.page-title {
+  background: linear-gradient(
+    105deg,
+    #4A9E7A 0%, #6ECFA3 20%, #8FDDB8 40%,
+    #6ECFA3 60%, #4A9E7A 80%, #3D8A6A 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.cloud-bridge__shimmer-desc--capabilities {
+  background: linear-gradient(
+    105deg,
+    #4A9E7A 0%, #6ECFA3 20%, #8593A4 40%,
+    #6ECFA3 60%, #4A9E7A 80%, #3D8A6A 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.cloud-bridge__capabilities-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cloud-bridge__capability-card {
+  padding: 14px;
+  border-radius: 6px;
+  background: rgba(110, 207, 163, 0.03);
+  border: 1px solid rgba(110, 207, 163, 0.12);
+}
+
+.cloud-bridge__capability-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.cloud-bridge__capability-name {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: #A8B4C0;
+  letter-spacing: 0.04em;
+}
+
+.cloud-bridge__capability-id {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: #5E6B7C;
+  letter-spacing: 0.06em;
+}
+
+.cloud-bridge__capability-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.cloud-bridge__capability-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cloud-bridge__capability-field span {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: #8593A4;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cloud-bridge__capability-field select,
+.cloud-bridge__capability-field input {
+  width: 100%;
+  padding: 8px 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: #A8B4C0;
+  letter-spacing: 0.04em;
+  background: #0B0E11;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  outline: none;
+}
+
+.cloud-bridge__capability-field select:focus,
+.cloud-bridge__capability-field input:focus {
+  border-color: rgba(110, 207, 163, 0.35);
+}
+
+.cloud-bridge__receipts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cloud-bridge__receipt-card {
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: rgba(110, 207, 163, 0.03);
+  border: 1px solid rgba(110, 207, 163, 0.1);
+}
+
+.cloud-bridge__receipt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cloud-bridge__receipt-capability {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: #A8B4C0;
+}
+
+.cloud-bridge__receipt-status {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+.cloud-bridge__receipt-meta,
+.cloud-bridge__receipt-hash {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: #5E6B7C;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}

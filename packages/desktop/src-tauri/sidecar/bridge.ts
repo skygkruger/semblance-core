@@ -373,6 +373,15 @@ let messageProcessingLock: Promise<void> = Promise.resolve();
 // Abort controller for cancelling in-progress message generation
 let activeMessageAbortController: AbortController | null = null;
 let dataDir = '';
+let executionDestinationPolicyStore: {
+  get: () => import('../../../cloud-broker/src/destination-policy-store.js').ExecutionDestinationPolicyDocument;
+  set: (
+    next: import('../../../cloud-broker/src/destination-policy-store.js').ExecutionDestinationPolicyDocument,
+  ) => import('../../../cloud-broker/src/destination-policy-store.js').ExecutionDestinationPolicyDocument;
+} | null = null;
+let executionReceiptStore: ReturnType<
+  typeof import('../../../cloud-broker/src/execution-receipt-store.js').createExecutionReceiptStore
+> | null = null;
 let documentsDb: Database.Database | null = null;
 let emailIndexer: EmailIndexer | null = null;
 let calendarIndexer: CalendarIndexer | null = null;
@@ -881,11 +890,69 @@ Core principles:
 
 // ─── Method Handlers ──────────────────────────────────────────────────────────
 
+function ensureExecutionDestinationStores(): void {
+  if (executionDestinationPolicyStore && executionReceiptStore) {
+    return;
+  }
+
+  const {
+    loadExecutionDestinationPolicy,
+    saveExecutionDestinationPolicy,
+  } = require('../../../cloud-broker/src/destination-policy-store.js');
+  const { createExecutionReceiptStore } = require('../../../cloud-broker/src/execution-receipt-store.js');
+  const executionPolicyPath = join(dataDir, 'execution-destination-policy.json');
+  const executionReceiptPath = join(dataDir, 'execution-receipts.json');
+  let executionDestinationPolicy = loadExecutionDestinationPolicy(executionPolicyPath);
+  executionReceiptStore = createExecutionReceiptStore(executionReceiptPath);
+  executionDestinationPolicyStore = {
+    get: () => executionDestinationPolicy,
+    set: (next) => {
+      executionDestinationPolicy = saveExecutionDestinationPolicy(executionPolicyPath, next);
+      return executionDestinationPolicy;
+    },
+  };
+  (globalThis as any).__executionDestinationPolicy = executionDestinationPolicyStore;
+  (globalThis as any).__executionReceiptStore = executionReceiptStore;
+}
+
+function recordExecutionRunReceipt(params: {
+  requestId: string;
+  domain: string;
+  taskType: string;
+  result: {
+    status: 'success' | 'ask' | 'reject';
+    reason?: string;
+    destination?: string;
+    model?: string;
+    provider?: string;
+    disclosureReceipt?: unknown;
+  };
+}): void {
+  if (!executionReceiptStore) return;
+  const { resolveCapabilityId } = require('../../../cloud-broker/src/destination-policy-store.js');
+  const { nanoid } = require('nanoid');
+  executionReceiptStore.append({
+    id: nanoid(),
+    requestId: params.requestId,
+    capabilityId: resolveCapabilityId(params.domain, params.taskType),
+    domain: params.domain,
+    taskType: params.taskType,
+    status: params.result.status,
+    destination: params.result.status === 'success' ? (params.result.destination ?? null) : null,
+    reason: params.result.reason ?? params.result.status,
+    timestamp: new Date().toISOString(),
+    model: params.result.model ?? null,
+    provider: params.result.provider ?? null,
+    disclosureReceipt: (params.result.disclosureReceipt as import('../../../cloud-broker/src/disclosure-receipt.js').DisclosureReceipt | undefined) ?? null,
+  });
+}
+
 async function handleInitialize(): Promise<unknown> {
   installEgressGuard();
 
   dataDir = join(homedir(), '.semblance', 'data');
   if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
+  ensureExecutionDestinationStores();
 
   // ──── STEP 1: Open preferences DB FIRST ────
   // Preferences (onboarding state, user name, autonomy tiers) are independent
@@ -2105,12 +2172,17 @@ async function handleInitialize(): Promise<unknown> {
           }
 
           const { nanoid: brokerNanoid } = require('nanoid');
+          const { buildExecutionPolicyInput } = require('../../../cloud-broker/src/policy-input-builder.js');
+          const requestId = brokerNanoid();
           const promptText = params.messages.map((m: { content: string }) => m.content).join(' ');
           const sensitivity = Math.min(100, Math.max(0, Math.round(promptText.length / 50)));
           const hasProvider = Boolean(cb.registry.getProvider(estimate.provider));
+          const destinationPolicy = executionDestinationPolicyStore?.get()
+            ?? require('../../../cloud-broker/src/destination-policy-store.js').createDefaultExecutionDestinationPolicy();
+          const estimatedCostCents = estimate.estimatedCost ?? 0;
 
           const result = await broker.execute({
-            requestId: brokerNanoid(),
+            requestId,
             messages: params.messages,
             maxTokens: params.maxTokens,
             temperature: params.temperature,
@@ -2120,20 +2192,28 @@ async function handleInitialize(): Promise<unknown> {
             excludedCategories: policy.excludedCategories,
             provider: estimate.provider,
             model: estimate.model,
-            policyInput: {
+            policyInput: buildExecutionPolicyInput({
+              policyDocument: destinationPolicy,
+              domain: params.domain,
+              taskType: params.taskType,
               sensitivity,
               localFeasibility: true,
               destinationTrust: {
                 byo: hasProvider ? 'verified' : 'none',
-                selfHosted: 'none',
+                selfHosted: 'verified',
                 confidential: 'none',
               },
-              userPreference: 'byo',
-              disclosureCeiling: 80,
-              attestationAvailable: false,
-              localOnlyKillSwitch: policy.mode === 'off',
-              explicitConsent: policy.mode !== 'off',
-            },
+              explicitConsent: policy.mode !== 'off' && policy.mode !== 'manual',
+              estimatedCostCents,
+              estimatedLatencyMs: 5_000,
+            }),
+          });
+
+          recordExecutionRunReceipt({
+            requestId,
+            domain: params.domain,
+            taskType: params.taskType,
+            result,
           });
 
           if (result.status === 'ask') {
@@ -2344,6 +2424,7 @@ async function handleInitialize(): Promise<unknown> {
     });
 
     (globalThis as any).__cloudBroker = cloudBroker;
+    ensureExecutionDestinationStores();
 
     console.error('[sidecar] Cloud Bridge initialized (mode: off — user must enable in Settings)');
   } catch (cloudBridgeErr) {
@@ -11858,6 +11939,42 @@ async function handleRequest(req: Request): Promise<void> {
         break;
       }
 
+      case 'execution:get_destination_policy': {
+        ensureExecutionDestinationStores();
+        const policyStore = executionDestinationPolicyStore;
+        if (!policyStore) {
+          respondError(id, 'Execution destination policy store not initialized');
+          break;
+        }
+        respond(id, policyStore.get());
+        break;
+      }
+
+      case 'execution:set_destination_policy': {
+        ensureExecutionDestinationStores();
+        const policyStore = executionDestinationPolicyStore;
+        if (!policyStore) {
+          respondError(id, 'Execution destination policy store not initialized');
+          break;
+        }
+        const { normalizeExecutionDestinationPolicy } = require('../../../cloud-broker/src/destination-policy-store.js');
+        const nextPolicy = policyStore.set(normalizeExecutionDestinationPolicy(params));
+        respond(id, { success: true, policy: nextPolicy });
+        break;
+      }
+
+      case 'execution:list_receipts': {
+        ensureExecutionDestinationStores();
+        if (!executionReceiptStore) {
+          respondError(id, 'Execution receipt store not initialized');
+          break;
+        }
+        const listParams = params as { limit?: number };
+        const limit = typeof listParams.limit === 'number' ? listParams.limit : 20;
+        respond(id, { receipts: executionReceiptStore.listRecent(limit) });
+        break;
+      }
+
       case 'execution:run': {
         const broker = (globalThis as any).__cloudBroker;
         if (!broker) {
@@ -11865,7 +11982,21 @@ async function handleRequest(req: Request): Promise<void> {
           break;
         }
         try {
-          const result = await broker.execute(params);
+          ensureExecutionDestinationStores();
+          const runParams = params as {
+            requestId?: string;
+            domain?: string;
+            taskType?: string;
+          };
+          const { nanoid } = require('nanoid');
+          const requestId = runParams.requestId ?? nanoid();
+          const result = await broker.execute({ ...params, requestId });
+          recordExecutionRunReceipt({
+            requestId,
+            domain: runParams.domain ?? 'chat',
+            taskType: runParams.taskType ?? 'reasoning',
+            result,
+          });
           respond(id, result);
         } catch (err) {
           respondError(id, (err as Error).message);
