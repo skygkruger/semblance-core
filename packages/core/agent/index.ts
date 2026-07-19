@@ -73,6 +73,38 @@ export type {
   IncomingTaskHandler,
 } from './device-handoff.js';
 
+export {
+  MemoryProposalStore,
+  MemoryProposalError,
+  createMemoryProposal,
+  confirmProposal,
+  correctProposal,
+  dismissProposal,
+  proposeFromPreferenceSignal,
+  formatPreferenceSignalAsMemoryText,
+  extractEvidenceSourceIdsFromPreferenceEvidence,
+  canConfirmProposal,
+} from './memory/memory-proposal.js';
+export type {
+  MemoryProposal,
+  MemoryProposalStatus,
+  MemoryDerivationMethod,
+  CreateMemoryProposalInput,
+  ConfirmMemoryProposalOptions,
+  CorrectMemoryProposalInput,
+} from './memory/memory-proposal.js';
+export {
+  MemoryPromotionError,
+  promoteConfirmedMemory,
+  buildPromotedMemoryAssertion,
+  isPromotableMemory,
+  isEvidenceBacked,
+} from './memory/memory-promotion.js';
+export type {
+  MemoryPromotionWriter,
+  PromotedMemoryAssertion,
+} from './memory/memory-promotion.js';
+
 import type { LLMProvider } from '../llm/types.js';
 import type { KnowledgeGraph } from '../knowledge/index.js';
 import type { IPCClient } from './ipc-client.js';
