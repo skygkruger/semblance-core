@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-19T19:05:00Z",
-  "releaseId": "cross-cutting-release-hardening-2026-07-19",
-  "notes": "Release train maturity reflects code-proven slice exit gates and cross-cutting matrix runnable gates. FieldProven remains deferred for hardware/installer/performance gates.",
+  "generatedAt": "2026-07-19T20:00:00Z",
+  "releaseId": "field-proof-multi-model-2026-07-19",
+  "notes": "Automatable §17 gates cleared. FieldProven remains deferred for Windows launch-floor, three-VM installer, and mobile physical acceptance.",
   "trains": [
     {
       "id": "A",
@@ -10,8 +10,8 @@
       "slices": [1, 2],
       "status": "RuntimeVerified",
       "fieldProvenBlockers": [
-        "Installer three clean launch-floor VMs not yet executed",
-        "Performance Windows launch-floor benchmark deferred"
+        "Installer three clean launch-floor VMs — pin release/evidence/field/installer-matrix.v1.json",
+        "Performance Windows launch-floor — pin release/evidence/field/launch-floor.v1.json"
       ],
       "evidenceIds": [
         "slice-2-exit-gate",
@@ -41,7 +41,7 @@
       "slices": [6, 7],
       "status": "RuntimeVerified",
       "fieldProvenBlockers": [
-        "Broad paid launch FieldProven pending installer and performance gates"
+        "Broad paid launch FieldProven pending installer and performance field evidence"
       ],
       "evidenceIds": [
         "slice-6-exit-gate",
@@ -67,7 +67,7 @@
       "slices": [9],
       "status": "AdversariallyVerified",
       "fieldProvenBlockers": [
-        "Confidential-compute marketing requires Released evidence; attestation field proof pending production workload deployment"
+        "Confidential-compute marketing requires Released evidence; attestation field proof pending production workload"
       ],
       "evidenceIds": [
         "slice-9-exit-gate",
@@ -92,8 +92,7 @@
       "slices": [11, 12],
       "status": "AdversariallyVerified",
       "fieldProvenBlockers": [
-        "Mobile physical device acceptance deferred",
-        "Encrypted sync field proof pending multi-device acceptance"
+        "Mobile physical device acceptance — pin release/evidence/field/mobile-acceptance.v1.json"
       ],
       "evidenceIds": [
         "slice-11-exit-gate",

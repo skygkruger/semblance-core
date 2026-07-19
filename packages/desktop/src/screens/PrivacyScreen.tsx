@@ -12,6 +12,9 @@ import {
   getHardwareKeyBackend,
   getHardwareKeyInfo,
   getPrivacyStatus,
+  generateDiagnosticBundle,
+  previewDiagnosticBundle,
+  cancelDiagnosticShare,
 } from '../ipc/commands';
 
 export function PrivacyScreen() {
@@ -34,6 +37,14 @@ export function PrivacyScreen() {
     actionsLogged: number; timeSavedSeconds: number;
     connectionCount: number; allLocal: boolean;
   }>({ actionsLogged: 0, timeSavedSeconds: 0, connectionCount: 0, allLocal: true });
+
+  const [diagnosticPreview, setDiagnosticPreview] = useState<{
+    bundleId: string;
+    byteSize: number;
+    redacted: boolean;
+    loading: boolean;
+    error: string | null;
+  }>({ bundleId: '', byteSize: 0, redacted: false, loading: false, error: null });
 
   useEffect(() => {
     let cancelled = false;
@@ -115,6 +126,28 @@ export function PrivacyScreen() {
       link.click();
     } catch (err) {
       console.error('[PrivacyScreen] PDF export failed:', err);
+    }
+  }, []);
+
+  const handleGenerateDiagnosticPreview = useCallback(async () => {
+    setDiagnosticPreview((prev) => ({ ...prev, loading: true, error: null }));
+    try {
+      await cancelDiagnosticShare();
+      const bundle = await generateDiagnosticBundle();
+      const preview = await previewDiagnosticBundle(bundle);
+      setDiagnosticPreview({
+        bundleId: preview.bundle.bundleId,
+        byteSize: preview.byteSize,
+        redacted: preview.bundle.redacted,
+        loading: false,
+        error: null,
+      });
+    } catch (err) {
+      setDiagnosticPreview((prev) => ({
+        ...prev,
+        loading: false,
+        error: err instanceof Error ? err.message : 'Diagnostic bundle unavailable',
+      }));
     }
   }, []);
 
@@ -214,6 +247,43 @@ export function PrivacyScreen() {
 
       </GhostSprite>
       </StaticBracket>
+
+      <div className="surface-slate" style={{ borderRadius: 12, padding: 20 }}>
+        <h3 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: 400, color: '#B8C0C8', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          {t('screen.privacy.diagnostic_bundle', 'Diagnostic Privacy Bundle')}
+        </h3>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#A8B4C0', margin: '0 0 12px', lineHeight: 1.5 }}>
+          {t('screen.privacy.diagnostic_bundle_hint', 'Generate a local-only, redacted bundle for support. Nothing uploads automatically.')}
+        </p>
+        <button
+          type="button"
+          onClick={handleGenerateDiagnosticPreview}
+          className="btn btn--opal btn--sm"
+          style={{ ...linkBtnStyle, width: '100%' }}
+          disabled={diagnosticPreview.loading}
+        >
+          <span className="btn__text">
+            {diagnosticPreview.loading
+              ? t('status.loading')
+              : t('screen.privacy.preview_diagnostic_bundle', 'Preview Diagnostic Bundle')}
+          </span>
+        </button>
+        {diagnosticPreview.error ? (
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#B07A8A', margin: '10px 0 0' }}>
+            {diagnosticPreview.error}
+          </p>
+        ) : null}
+        {diagnosticPreview.bundleId ? (
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#8593A4' }}>
+              {t('screen.privacy.bundle_id', 'Bundle ID')}: {diagnosticPreview.bundleId.slice(0, 8)}…
+            </span>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#6ECFA3' }}>
+              {Math.round(diagnosticPreview.byteSize / 1024)} KB · {diagnosticPreview.redacted ? 'redacted' : 'clean'}
+            </span>
+          </div>
+        ) : null}
+      </div>
 
       {/* M7 + M9: Links to detailed network activity and gateway permissions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

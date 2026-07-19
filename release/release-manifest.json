@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "releaseId": "cross-cutting-release-hardening-2026-07-19",
-  "generatedAt": "2026-07-19T19:05:09Z",
+  "releaseId": "field-proof-multi-model-2026-07-19",
+  "generatedAt": "2026-07-19T19:40:57Z",
   "repositories": {
     "core": {
-      "sourceCommit": "a6ce9caf2c98dc62bd68651e7d97bbc1c7aee58b",
-      "sourceTreeHash": "50fc633d536bb68fb2ea45f9e87035990afaaf88"
+      "sourceCommit": "d2611796aa9bf3b0ae5c8e895450fb5dd5514c9a",
+      "sourceTreeHash": "3e7731fbd62dad90b7ef151ee0763f285bcc2c81"
     },
     "representative": {
-      "sourceCommit": "17c72af955e087a255c2c60acd3e2e5306ff7343",
-      "sourceTreeHash": "3587212219473c575a5488552daac7b7cf697310",
+      "sourceCommit": "64ee805eebab5f1d72f008c517b0b20e2e779fe8",
+      "sourceTreeHash": "4f8270daf817a26d6ec64a6c843e3d2a73b4f0c0",
       "packageVersion": "0.1.0",
       "artifactHash": "6e69c2a0128e888da2f37a5e3f92ee078748a87ff508ade088d0a576baa630fa",
       "extensionManifestHash": "6e69c2a0128e888da2f37a5e3f92ee078748a87ff508ade088d0a576baa630fa"
@@ -885,7 +885,7 @@
       "id": "cross-cutting-gate-matrix",
       "repository": "core",
       "path": "release/evidence/cross-cutting/gate-matrix.json",
-      "sha256": "326170d94ae80e4ddb4c6bc6a6ada29999c67c5f42cb3d80c45da4f4613e28c9",
+      "sha256": "74ccca2917d281ce893298964785fb0195c76449f7f4ea3cba6b91f416dc5a62",
       "requiredForStates": [
         "RuntimeVerified"
       ]
@@ -903,7 +903,7 @@
       "id": "cross-cutting-release-trains",
       "repository": "core",
       "path": "release/evidence/cross-cutting/release-trains.v1.json",
-      "sha256": "aa1d8807bf01988ea9741741ba7291326a52e21e5bb226100e0226b11a282f66",
+      "sha256": "f026d6b98733e96ab9693a05d2185a01818b74fab5c82088b4fd8e2887d3fbde",
       "requiredForStates": [
         "RuntimeVerified"
       ]
@@ -912,10 +912,46 @@
       "id": "cross-cutting-program-status",
       "repository": "core",
       "path": "release/evidence/cross-cutting/program-status.md",
-      "sha256": "c24c32a7859c55cf308718bf179a9ff46bc473945ede2b11615999e91297fdde",
+      "sha256": "b67ff88099bbb508f88a14b849e8f85fbbff0b65a4a3e38a1df8079147132df3",
       "requiredForStates": [
         "RuntimeVerified"
       ]
+    },
+    {
+      "id": "multi-model-architecture-audit",
+      "repository": "core",
+      "path": "release/evidence/cross-cutting/multi-model-audit.json",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ],
+      "sha256": "83ecc1e519f5f4b5a15afdfe63715926b2e8d5549ca9836c2c068f6b11e99617"
+    },
+    {
+      "id": "supply-chain-sbom",
+      "repository": "core",
+      "path": "release/sbom/semblance.cdx.json",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ],
+      "sha256": "ad3489e9c9e490f6d71acaf84815633343f27cabd74dd0a2d0524c844414fab5"
+    },
+    {
+      "id": "supply-chain-notices",
+      "repository": "core",
+      "path": "release/legal/THIRD_PARTY_NOTICES.md",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ],
+      "sha256": "803dfcec7c28e7537abe06415f270ce3df32e05b5d223166708e66e8067e5e7b"
+    },
+    {
+      "id": "a11y-task-checklist",
+      "repository": "core",
+      "path": "release/evidence/a11y/task-based-checklist.md",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ],
+      "sha256": "d9603472cd4dd707b19830d0900fa4b46cbbf5a906c8d27d695d9b8a6559124c"
     }
   ],
   "commerce": {
@@ -1353,7 +1389,31 @@
         "cross-cutting-gate-matrix",
         "cross-cutting-stop-conditions",
         "cross-cutting-release-trains",
-        "cross-cutting-program-status"
+        "cross-cutting-program-status",
+        "supply-chain-sbom",
+        "supply-chain-notices"
+      ],
+      "protocolVersions": {
+        "releaseEvidence": 1,
+        "execution": 1,
+        "extensionManifest": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": null
+    },
+    {
+      "id": "multi-model-architecture",
+      "name": "Multi-model onboarding and inference architecture",
+      "repository": "core",
+      "state": "RuntimeVerified",
+      "usesDigitalRepresentative": false,
+      "signedArtifactNames": [],
+      "evidenceIds": [
+        "multi-model-architecture-audit",
+        "cross-cutting-gate-matrix"
       ],
       "protocolVersions": {
         "releaseEvidence": 1,

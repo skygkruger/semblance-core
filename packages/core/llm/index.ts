@@ -103,9 +103,9 @@ export interface CreateLLMProviderConfig {
  * The router delegates to the underlying provider based on task type.
  * This is the ONLY factory that should be used to create LLM providers.
  *
- * Provider priority (desktop): Ollama (GPU) > BitNet (CPU) > Native (fallback).
- * When bitnetBridge is provided alongside the primary provider, BitNet is
- * registered as the fallback reasoning provider in the router.
+ * Provider priority (desktop): Ollama (GPU) > Standard GGUF (Native) > BitNet (Settings opt-in).
+ * BitNet is wired via InferenceRouter.setBitNetProvider() only after a model is loaded —
+ * never pre-attached at factory time.
  */
 export function createLLMProvider(config?: CreateLLMProviderConfig | { baseUrl?: string }): LLMProvider {
   // Backward compatibility: plain { baseUrl } config → Ollama mode
@@ -114,8 +114,6 @@ export function createLLMProvider(config?: CreateLLMProviderConfig | { baseUrl?:
   const nativeBridge = (config && 'nativeBridge' in config) ? config.nativeBridge : undefined;
   const reasoningModel = (config && 'reasoningModel' in config) ? config.reasoningModel : undefined;
   const embeddingModel = (config && 'embeddingModel' in config) ? config.embeddingModel : 'nomic-embed-text';
-  const bitnetBridge = (config && 'bitnetBridge' in config) ? config.bitnetBridge : undefined;
-  const bitnetModel = (config && 'bitnetModel' in config) ? config.bitnetModel : 'falcon-e-1b';
   const hardwareTier = (config && 'hardwareTier' in config) ? config.hardwareTier : 'standard';
 
   let provider: LLMProvider;
@@ -139,24 +137,12 @@ export function createLLMProvider(config?: CreateLLMProviderConfig | { baseUrl?:
     provider = new OllamaProvider({ baseUrl });
   }
 
-  // Create BitNet fallback provider if a separate bitnet bridge is provided
-  // This allows Ollama > BitNet > Native priority chain
-  let bitnetProvider: LLMProvider | undefined;
-  if (bitnetBridge && runtime !== 'bitnet') {
-    bitnetProvider = new BitNetProvider({
-      bridge: bitnetBridge,
-      modelName: bitnetModel ?? 'falcon-e-1b',
-      embeddingModelName: embeddingModel,
-    });
-  }
-
-  // Wrap in InferenceRouter so all callers go through routing
+  // Wrap in InferenceRouter so all callers go through routing.
+  // BitNet is not pre-attached here — bridge.ts calls setBitNetProvider() after load.
   return new InferenceRouter({
     reasoningProvider: provider,
     embeddingProvider: provider,
     reasoningModel: reasoningModel ?? 'llama3.1:8b',
     embeddingModel: embeddingModel ?? 'nomic-embed-text',
-    bitnetProvider,
-    bitnetReasoningModel: bitnetProvider ? (bitnetModel ?? 'falcon-e-1b') : undefined,
   });
 }

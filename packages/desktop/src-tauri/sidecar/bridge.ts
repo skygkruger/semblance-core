@@ -123,6 +123,14 @@ import { BirthdayTracker } from '../../../core/agent/proactive/birthday-tracker.
 import { ContactFrequencyMonitor } from '../../../core/agent/proactive/contact-frequency-monitor.js';
 import { NetworkMonitor } from '../../../gateway/monitor/network-monitor.js';
 import { PrivacyReportGenerator } from '../../../gateway/monitor/privacy-report.js';
+import {
+  cancelShare as cancelDiagnosticShare,
+  generateBundle as generateDiagnosticBundle,
+  prepareShareRequest as prepareDiagnosticShareRequest,
+  previewBundle as previewDiagnosticBundle,
+  redactBundle as redactDiagnosticBundle,
+  type DiagnosticBundleContext,
+} from '../../../core/diagnostics/index.js';
 import { AuditQuery } from '../../../gateway/audit/audit-query.js';
 import { DeviceRegistry } from '../../../core/routing/device-registry.js';
 import { TaskAssessor } from '../../../core/routing/task-assessor.js';
@@ -1292,17 +1300,12 @@ async function handleInitialize(): Promise<unknown> {
     else console.error('[sidecar] NativeRuntime channel timed out (5s)');
   }).catch((err) => console.error('[sidecar] NativeRuntime channel error:', err));
 
-  // Check if a BitNet model was previously active — if so, create both NativeProvider
-  // and BitNetProvider so the InferenceRouter can route reasoning through BitNet's
-  // tool-calling-aware provider. Both use the same NativeRuntime bridge (one-fork approach:
-  // BitNet.cpp replaced llama-cpp-2 entirely, so both paths use BitNet.cpp's optimized kernels).
-  const activeBitNetModelId = getPref('bitnet_active_model') ?? null;
+  // Standard-first bootstrap: NativeProvider only. BitNet is wired later via
+  // setBitNetProvider() after an on-demand model load (Settings or fallback).
   const nativeLlm = createLLMProvider({
     runtime: 'builtin',
     nativeBridge: nativeRuntimeBridge,
     embeddingModel: 'nomic-embed-text-v1.5',
-    bitnetBridge: nativeRuntimeBridge,
-    bitnetModel: activeBitNetModelId ?? 'falcon-e-1b',
   });
 
   try {
@@ -1599,7 +1602,7 @@ async function handleInitialize(): Promise<unknown> {
     }
   });
 
-  // Check inference backends — priority: Ollama (GPU) > NativeRuntime (CPU)
+  // Check inference backends — priority: Ollama (GPU) → Standard GGUF → BitNet (on-demand fallback)
   let inferenceEngine: 'native' | 'ollama' | 'none' = 'none';
   let activeModel: string | null = null;
   let availableModels: string[] = [];
@@ -1658,7 +1661,7 @@ async function handleInitialize(): Promise<unknown> {
     }
   }
 
-  // ── Step 3: If no Ollama, load NativeRuntime reasoning model (CPU) ───────
+  // ── Step 3: If no Ollama, load standard GGUF reasoning model (Qwen/Phi) ───
   if (inferenceEngine !== 'ollama') {
     // Prefer primary-tier models (Qwen3) over fast-tier (Phi-4-Mini) for reasoning slot.
     const primaryCandidates = MODEL_CATALOG.filter(m => !m.isEmbedding && m.inferenceTier === 'primary');
@@ -1748,9 +1751,9 @@ async function handleInitialize(): Promise<unknown> {
     // Vision model load is optional
   }
 
-  // ── BitNet Fallback Activation ──────────────────────────────────────────────
-  // If no standard Qwen model was loaded, check for downloaded BitNet 1-bit models.
-  // BitNet models are smaller/faster but lower quality than standard Q4_K_M models.
+  // ── BitNet on-demand fallback ─────────────────────────────────────────────
+  // Only when standard GGUF reasoning failed to load. BitNet is Settings opt-in
+  // for new users; this path serves persisted bitnet_active_model or downloaded catalog.
   if (core && !activeModel) {
     const activeBitNetId = getPref('bitnet_active_model') ?? null;
     const bitnetBaseDir = dataDir ? join(dataDir, 'models').replace(/[/\\]models$/, '') : undefined;
@@ -4799,6 +4802,47 @@ function handleGetNetworkTrustStatus(): unknown {
   return networkMonitor.getTrustStatus();
 }
 
+function buildDiagnosticBundleContext(overrides: DiagnosticBundleContext = {}): DiagnosticBundleContext {
+  return {
+    appVersion: '0.2.0',
+    buildHash: process.env.SEMBLANCE_BUILD_HASH ?? null,
+    platform: process.platform,
+    featureFlags: {
+      proofCenter: true,
+      diagnosticBundle: true,
+    },
+    logs: [{
+      timestamp: new Date().toISOString(),
+      level: 'info',
+      message: 'Diagnostic bundle generated locally',
+      context: {
+        sidecar: true,
+      },
+    }],
+    ...overrides,
+  };
+}
+
+function handleGenerateDiagnosticBundle(params: { context?: DiagnosticBundleContext }): unknown {
+  return generateDiagnosticBundle(buildDiagnosticBundleContext(params.context));
+}
+
+function handlePreviewDiagnosticBundle(params: { bundle: ReturnType<typeof generateDiagnosticBundle> }): unknown {
+  return previewDiagnosticBundle(params.bundle);
+}
+
+function handleRedactDiagnosticBundle(params: { bundle: ReturnType<typeof generateDiagnosticBundle> }): unknown {
+  return redactDiagnosticBundle(params.bundle);
+}
+
+function handlePrepareDiagnosticShare(params: { bundle: ReturnType<typeof generateDiagnosticBundle> }): unknown {
+  return prepareDiagnosticShareRequest(params.bundle);
+}
+
+function handleCancelDiagnosticShare(): unknown {
+  return { cancelled: cancelDiagnosticShare() };
+}
+
 // ─── Step 8: Task Routing Handlers ──────────────────────────────────────────
 
 function handleGetDevices(): unknown[] {
@@ -4827,6 +4871,32 @@ function handleAssessTask(params: { task: Record<string, unknown> }): unknown {
 }
 
 // ─── Hardware & Runtime Handlers (Step 9) ────────────────────────────────────
+
+function handleGetRecommendedModels(params: { tier: string }): unknown {
+  const tier = (params.tier || 'standard') as HardwareProfileTier;
+  const reasoning = getRecommendedReasoningModel(tier);
+  const embedding = getEmbeddingModel();
+  let fast: ReturnType<typeof getFastTierModel> | null = null;
+  try {
+    fast = getFastTierModel(tier);
+  } catch {
+    // Fast tier optional for some catalog builds
+  }
+
+  const toSummary = (entry: { id: string; displayName: string; parameterCount: string; fileSizeBytes: number }) => ({
+    id: entry.id,
+    displayName: entry.displayName,
+    parameterCount: entry.parameterCount,
+    fileSizeBytes: entry.fileSizeBytes,
+    fileSizeLabel: formatBytes(entry.fileSizeBytes),
+  });
+
+  return {
+    reasoning: toSummary(reasoning),
+    embedding: toSummary(embedding),
+    fast: fast ? toSummary(fast) : null,
+  };
+}
 
 function handleDetectHardware(): unknown {
   // Hardware detection runs in-process using Node.js os module.
@@ -5830,9 +5900,10 @@ async function handleBitNetSetActive(params: { modelId: string }): Promise<unkno
     }
   }
 
-  // Save preference so it persists across restarts
+  // Save preference so it persists across restarts (mutually exclusive with standard GGUF)
   try {
     setPref('bitnet_active_model', model.id);
+    setPref('standard_active_model', '');
   } catch {
     // Non-fatal — model is loaded even if pref save fails
   }
@@ -5944,6 +6015,25 @@ async function handleStandardSetActive(params: { modelId: string }): Promise<unk
   const currentBitnet = getPref('bitnet_active_model');
   if (currentBitnet) {
     logProviderTransition('bitnet', 'standard', model.id, 'User selected standard model from Settings');
+  }
+
+  // Wire standard model as reasoning provider and clear BitNet slot (mutual exclusion)
+  if (core) {
+    const router = core.llm as InstanceType<typeof InferenceRouter>;
+    if (router.clearBitNetProvider) {
+      router.clearBitNetProvider();
+    }
+    if (router.setReasoningProvider) {
+      const { NativeProvider } = await import('../../../core/llm/native-provider.js');
+      const stdProvider = new NativeProvider({
+        bridge: nativeRuntimeBridge,
+        modelName: model.id,
+        embeddingModelName: 'nomic-embed-text-v1.5',
+      });
+      router.setReasoningProvider(stdProvider, model.id);
+      core.models.setActiveChatModel(model.id);
+      try { if (core.agent) core.agent.setModel(model.id); } catch { /* */ }
+    }
   }
 
   // Save preference
@@ -7836,6 +7926,31 @@ async function handleRequest(req: Request): Promise<void> {
         respond(id, result);
         break;
 
+      case 'diagnostics:generateBundle':
+        result = handleGenerateDiagnosticBundle(params as { context?: DiagnosticBundleContext });
+        respond(id, result);
+        break;
+
+      case 'diagnostics:previewBundle':
+        result = handlePreviewDiagnosticBundle(params as { bundle: ReturnType<typeof generateDiagnosticBundle> });
+        respond(id, result);
+        break;
+
+      case 'diagnostics:redactBundle':
+        result = handleRedactDiagnosticBundle(params as { bundle: ReturnType<typeof generateDiagnosticBundle> });
+        respond(id, result);
+        break;
+
+      case 'diagnostics:prepareShare':
+        result = handlePrepareDiagnosticShare(params as { bundle: ReturnType<typeof generateDiagnosticBundle> });
+        respond(id, result);
+        break;
+
+      case 'diagnostics:cancelShare':
+        result = handleCancelDiagnosticShare();
+        respond(id, result);
+        break;
+
       // ── Step 8: Task Routing ──
 
       case 'routing:getDevices':
@@ -9478,6 +9593,11 @@ async function handleRequest(req: Request): Promise<void> {
       // ─── Model Download Handlers ──────────────────────────────────────
       case 'start_model_downloads': {
         const result = await handleStartModelDownloads(params as { tier: string });
+        respond(id, result);
+        break;
+      }
+      case 'get_recommended_models': {
+        const result = handleGetRecommendedModels(params as { tier: string });
         respond(id, result);
         break;
       }

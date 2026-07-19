@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Settings — Semblance</title>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to settings</a>
+  <header role="banner">
+    <h1>Settings</h1>
+    <nav aria-label="Primary">
+      <ul>
+        <li><a href="#chat">Chat</a></li>
+        <li><a href="#proof">Proof</a></li>
+        <li><a href="#settings" aria-current="page">Settings</a></li>
+      </ul>
+    </nav>
+  </header>
+  <div role="navigation" aria-label="Settings sections">
+    <ul>
+      <li><a href="#account" aria-current="page">Account</a></li>
+      <li><a href="#privacy">Privacy</a></li>
+      <li><a href="#ai-engine">AI Engine</a></li>
+    </ul>
+  </div>
+  <main id="main" role="main" aria-label="Settings content">
+    <section id="account" aria-labelledby="account-heading">
+      <h2 id="account-heading">Account</h2>
+      <form aria-label="Account preferences">
+        <label for="display-name">Display name</label>
+        <input id="display-name" name="displayName" type="text" autocomplete="name">
+        <button type="submit">Save</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

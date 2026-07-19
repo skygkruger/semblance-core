@@ -20,7 +20,11 @@ import {
   type ExternalConfirmationChecker,
 } from '@semblance/kernel';
 import type { AuditTrail } from '../audit/trail.js';
-import { assertAuditPendingBeforeDispatch } from '../audit/trail.js';
+import {
+  assertAuditChainIntegrityBeforeDispatch,
+  assertAuditPendingBeforeDispatch,
+  AuditChainIntegrityError,
+} from '../audit/trail.js';
 import type { Allowlist } from '../security/allowlist.js';
 import type { RateLimiter } from '../security/rate-limiter.js';
 import type { AnomalyDetector } from '../security/anomaly-detector.js';
@@ -308,6 +312,31 @@ export async function validateAndExecute(
       autonomyEvaluation.reason,
       auditRef,
     );
+  }
+
+  // --- Step 5c: Audit chain integrity (fail closed before external dispatch) ---
+  try {
+    assertAuditChainIntegrityBeforeDispatch(deps.auditTrail);
+  } catch (error) {
+    if (error instanceof AuditChainIntegrityError) {
+      const auditRef = logRejection(
+        deps.auditTrail,
+        request.id,
+        request.action,
+        payloadHash,
+        request.signature,
+        'anomaly_detected',
+        error.message,
+      );
+      return makeErrorResponse(
+        request.id,
+        'error',
+        'AUDIT_CHAIN_BROKEN',
+        error.message,
+        auditRef,
+      );
+    }
+    throw error;
   }
 
   // --- Step 6–8: Kernel action lifecycle with audit-before-dispatch ---

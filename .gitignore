@@ -140,10 +140,16 @@ scripts/**/*.d.ts.map
 !scripts/verify-cross-repo-slice.js
 !scripts/verify-cross-repo-slice.d.ts
 !scripts/cross-cutting-gate-matrix.js
+!scripts/audit-multi-model.js
 !scripts/smoke-test-runtimes.js
 !scripts/process-isolation-audit.js
 !scripts/check-feature-evidence-ladder.js
 !scripts/check-stop-conditions.js
+!scripts/a11y-gate.js
+!scripts/generate-sbom.js
+!scripts/generate-notices.js
+!scripts/supply-chain-gate.js
+!scripts/verify-field-evidence.js
 
 # Vitest config compiled output
 vitest.config.js

@@ -1,7 +1,7 @@
 export { SplashScreen } from './SplashScreen';
 export type { SplashScreenProps } from './SplashScreen.types';
 export { HardwareDetection } from './HardwareDetection';
-export type { HardwareDetectionProps, HardwareInfo } from './HardwareDetection.types';
+export type { HardwareDetectionProps, HardwareInfo, RecommendedModelInfo } from './HardwareDetection.types';
 export { DataSourcesStep } from './DataSourcesStep';
 export type { DataSourcesStepProps, DataSource, DataSourceStatus } from './DataSourcesStep.types';
 export { AutonomyTier } from './AutonomyTier';

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/schemas/field-evidence/installer-matrix.v1.schema.json",
+  "title": "Installer three-VM field evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "evidenceId",
+    "capturedAt",
+    "matrixPass",
+    "vms"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "evidenceId": { "const": "installer-three-vms" },
+    "capturedAt": { "type": "string", "format": "date-time" },
+    "releaseId": { "type": "string", "minLength": 1 },
+    "matrixPass": { "type": "boolean" },
+    "vms": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["vmId", "installPass", "updatePass", "rollbackPass", "uninstallPass"],
+        "properties": {
+          "vmId": { "type": "string", "minLength": 1 },
+          "installPass": { "type": "boolean" },
+          "updatePass": { "type": "boolean" },
+          "rollbackPass": { "type": "boolean" },
+          "uninstallPass": { "type": "boolean" },
+          "installerPath": { "type": "string" },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

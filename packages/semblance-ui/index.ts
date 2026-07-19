@@ -140,4 +140,4 @@ export type { SessionAuthStateProvider, FeatureAuthContextValue } from './hooks/
 
 // Onboarding Pages
 export { SplashScreen, HardwareDetection, DataSourcesStep, AutonomyTier as AutonomyTierStep, NamingMoment, NamingYourAI, InitializeStep, TermsAcceptanceStep, IntentCapture, AlterEgoWeekOffer, InitialIndexStep } from './pages/Onboarding/index.js';
-export type { SplashScreenProps, HardwareDetectionProps, HardwareInfo, DataSourcesStepProps, DataSourceStatus, AutonomyTierProps, NamingMomentProps, NamingYourAIProps, InitializeStepProps, ModelDownload, KnowledgeMomentData, TermsAcceptanceStepProps, IntentCaptureProps, AlterEgoWeekOfferProps, InitialIndexStepProps, IndexingSource } from './pages/Onboarding/index.js';
+export type { SplashScreenProps, HardwareDetectionProps, HardwareInfo, RecommendedModelInfo, DataSourcesStepProps, DataSourceStatus, AutonomyTierProps, NamingMomentProps, NamingYourAIProps, InitializeStepProps, ModelDownload, KnowledgeMomentData, TermsAcceptanceStepProps, IntentCaptureProps, AlterEgoWeekOfferProps, InitialIndexStepProps, IndexingSource } from './pages/Onboarding/index.js';

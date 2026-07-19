@@ -196,6 +196,26 @@ export type {
   SovereigntyReportDeps,
 } from './reporting/sovereignty-report.js';
 
+// Re-export local diagnostic privacy bundle (Core never uploads — Gateway-only share transport)
+export {
+  cancelShare,
+  createDiagnosticBundleService,
+  generateBundle,
+  getPendingShareRequest,
+  prepareShareRequest,
+  previewBundle,
+  redactBundle,
+  resetDiagnosticBundleServiceForTests,
+} from './diagnostics/index.js';
+export type {
+  DiagnosticBundle,
+  DiagnosticBundleContext,
+  DiagnosticBundlePreview,
+  DiagnosticBundleService,
+  DiagnosticLogEntry,
+  DiagnosticShareRequest,
+} from './diagnostics/index.js';
+
 // Credential keychain interface
 export type { KeychainStore } from './credentials/keychain.js';
 export {

@@ -492,7 +492,11 @@ function verifySlice13Completion(manifest, coreRoot) {
     return errors;
   }
 
-  const crossCuttingComplete = manifest.releaseId === 'cross-cutting-release-hardening-2026-07-19'
+  const PROGRAM_RELEASE_IDS = new Set([
+    'cross-cutting-release-hardening-2026-07-19',
+    'field-proof-multi-model-2026-07-19',
+  ]);
+  const crossCuttingComplete = PROGRAM_RELEASE_IDS.has(manifest.releaseId)
     || (manifest.evidence ?? []).some((entry) => entry.id === 'cross-cutting-gate-matrix');
 
   if (!crossCuttingComplete && manifest.releaseId !== 'shared-space-sovereignty-2026-07-19') {
@@ -504,10 +508,12 @@ function verifySlice13Completion(manifest, coreRoot) {
     ));
   }
 
-  if (crossCuttingComplete && manifest.releaseId !== 'cross-cutting-release-hardening-2026-07-19') {
+  if (crossCuttingComplete && !PROGRAM_RELEASE_IDS.has(manifest.releaseId)) {
     errors.push(error(
       'CROSS_CUTTING_RELEASE_ID_MISMATCH',
-      'releaseId must be cross-cutting-release-hardening-2026-07-19 when cross-cutting evidence is pinned',
+      'releaseId must be a program hardening release '
+      + '(cross-cutting-release-hardening-2026-07-19 or field-proof-multi-model-2026-07-19) '
+      + 'when cross-cutting evidence is pinned',
       'releaseId',
     ));
   }
@@ -556,7 +562,8 @@ function verifyCrossCuttingCompletion(manifest, coreRoot) {
   const crossCuttingPinned = (manifest.evidence ?? []).some(
     (entry) => entry.id === 'cross-cutting-gate-matrix',
   );
-  const crossCuttingRelease = manifest.releaseId === 'cross-cutting-release-hardening-2026-07-19';
+  const crossCuttingRelease = manifest.releaseId === 'cross-cutting-release-hardening-2026-07-19'
+    || manifest.releaseId === 'field-proof-multi-model-2026-07-19';
 
   if (!slice13Complete || (!crossCuttingPinned && !crossCuttingRelease)) {
     return errors;

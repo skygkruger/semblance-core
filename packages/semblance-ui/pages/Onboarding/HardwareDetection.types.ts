@@ -9,8 +9,15 @@ export interface HardwareInfo {
   voiceCapable: boolean;
 }
 
+export interface RecommendedModelInfo {
+  displayName: string;
+  parameterCount: string;
+  fileSizeLabel: string;
+}
+
 export interface HardwareDetectionProps {
   hardwareInfo: HardwareInfo | null;
   detecting: boolean;
+  recommendedModel?: RecommendedModelInfo | null;
   onContinue?: () => void;
 }

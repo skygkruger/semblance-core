@@ -18,7 +18,7 @@ import {
   AlterEgoWeekOffer,
   InitialIndexStep,
 } from '@semblance/ui';
-import type { HardwareInfo, ModelDownload, KnowledgeMomentData, AutonomyTier, DataSourceStatus, IndexingSource } from '@semblance/ui';
+import type { HardwareInfo, ModelDownload, KnowledgeMomentData, AutonomyTier, DataSourceStatus, IndexingSource, RecommendedModelInfo } from '@semblance/ui';
 import { detectOSLocale } from '@semblance/core/i18n/supported-languages';
 import { listen, emit, type UnlistenFn } from '@tauri-apps/api/event';
 import { useAppDispatch } from '../state/AppState';
@@ -28,6 +28,7 @@ import { OnboardingGrid } from '../components/OnboardingGrid';
 
 import {
   detectHardware,
+  getRecommendedModelsForTier,
   setUserName,
   setAiName as saveAiNamePref,
   setAutonomyTier,
@@ -118,6 +119,7 @@ export function OnboardingFlow() {
   const dispatch = useAppDispatch();
   // Hardware detection state
   const [hardwareInfo, setHardwareInfo] = useState<HardwareInfo | null>(null);
+  const [recommendedModel, setRecommendedModel] = useState<RecommendedModelInfo | null>(null);
   const [detecting, setDetecting] = useState(false);
 
   // AI name state
@@ -204,7 +206,20 @@ export function OnboardingFlow() {
     if (step !== 'hardware' || hardwareInfo) return;
     setDetecting(true);
     detectHardware()
-      .then((result) => setHardwareInfo(toHardwareInfo(result)))
+      .then(async (result) => {
+        const info = toHardwareInfo(result);
+        setHardwareInfo(info);
+        try {
+          const models = await getRecommendedModelsForTier(info.tier);
+          setRecommendedModel({
+            displayName: models.reasoning.displayName,
+            parameterCount: models.reasoning.parameterCount,
+            fileSizeLabel: models.reasoning.fileSizeLabel,
+          });
+        } catch (err) {
+          console.error('[OnboardingFlow] getRecommendedModelsForTier failed:', err);
+        }
+      })
       .catch((err) => {
         console.error('[OnboardingFlow] detectHardware failed:', err);
         setHardwareInfo({
@@ -219,7 +234,7 @@ export function OnboardingFlow() {
         });
       })
       .finally(() => setDetecting(false));
-  }, [step, hardwareInfo]);
+  }, [step, hardwareInfo, t]);
 
   // Handle connecting a data source via OAuth or native flow
   const handleConnectSource = useCallback(async (sourceId: string, connectorId: string) => {
@@ -711,6 +726,7 @@ export function OnboardingFlow() {
         <HardwareDetection
           hardwareInfo={hardwareInfo}
           detecting={detecting}
+          recommendedModel={recommendedModel}
           onContinue={goNext}
         />
       )}

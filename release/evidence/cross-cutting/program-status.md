@@ -1,19 +1,32 @@
-# Semblance Program Status — Cross-Cutting Release Hardening
+# Semblance Program Status — Field-Proof + Multi-Model Audit
 
-**Release ID:** `cross-cutting-release-hardening-2026-07-19`  
+**Release ID:** `field-proof-multi-model-2026-07-19`  
 **Generated:** 2026-07-19  
-**Core commit:** (pinned at manifest generation)
 
 ## Summary
 
-Program sections 17–19 are machine-verifiable via `node scripts/cross-cutting-gate-matrix.js`. All **29 runnable gates pass**. **8 gates remain DeferredFieldProof** — hardware, installer, supply-chain, and environment gates are honestly deferred, not faked.
+Program §17–19 plus multi-model architecture audit are machine-verifiable via `node scripts/cross-cutting-gate-matrix.js`. Automatable DeferredFieldProof gates (outage, corruption, diagnostic privacy, accessibility axe, supply-chain) are **runnable and passing**. **3 gates remain DeferredFieldProof** until Windows/mobile field evidence is pinned. Multi-model path (installer runtimes → onboarding hardware suggest → download → auto-load → Settings select) is audited by `node scripts/audit-multi-model.js`.
+
+## Multi-model architecture (verified)
+
+| Capability | Status |
+|------------|--------|
+| Installer bundles Node runtimes + sidecar bridges (`runtimes/**/*`) | Verified |
+| LLM weights in installer | Not shipped — downloaded during onboarding to `~/.semblance/models/` (catalog policy) |
+| Hardware detect → tier classify | Verified |
+| Onboarding shows recommended standard GGUF for tier | Verified |
+| Onboarding downloads `getRecommendedReasoningModel(tier)` | Verified |
+| Post-onboarding auto-load (Ollama → standard GGUF → BitNet fallback) | Verified |
+| Settings AI Engine manual select (standard + BitNet opt-in) | Verified |
+| BitNet router preference gated on loaded+available | Verified |
+| BitNet not pre-attached / not onboarding default | Verified (catalog on-demand) |
 
 ## Release trains (A–H)
 
 | Train | Name | Slices | Status | Field proof |
 |-------|------|--------|--------|-------------|
-| A | Sovereign Foundation | 1–2 | RuntimeVerified | Installer + Windows launch-floor deferred |
-| B | Local Intelligence | 3–5 | RuntimeVerified | Real-data strict requires connected OAuth on user machine |
+| A | Sovereign Foundation | 1–2 | RuntimeVerified | Installer three-VM + Windows launch-floor deferred |
+| B | Local Intelligence | 3–5 | RuntimeVerified | Real-data strict needs connected OAuth on user machine |
 | C | Paid Agency | 6–7 | RuntimeVerified | Broad launch FieldProven pending installer/performance |
 | D | User-Controlled Cloud | 8 | RuntimeVerified | — |
 | E | Confidential Semblance Cloud | 9 | AdversariallyVerified | Production confidential workload field proof pending |
@@ -21,30 +34,19 @@ Program sections 17–19 are machine-verifiable via `node scripts/cross-cutting-
 | G | Sovereign Network | 11–12 | AdversariallyVerified | Mobile physical device + multi-device sync deferred |
 | H | Shared Sovereignty | 13 | AdversariallyVerified | Multi-member acceptance deferred |
 
-Canonical train definitions: `release/release-trains.v1.json`
+Canonical: `release/release-trains.v1.json`
 
-## Deferred field proof blockers
+## Deferred field proof (3 — honest)
 
-1. **Mobile physical device acceptance** — Requires iOS/Android hardware and manual acceptance protocol.
-2. **Accessibility automated + task-based** — No stable axe/playwright gate in CI; task-based review pending.
-3. **Performance Windows launch-floor** — Requires Windows 11 23H2+ benchmark harness (4c/16GB/20GB free).
-4. **Installer three clean VMs** — Requires three clean launch-floor VMs and scripted install-verify pipeline.
-5. **Outage safety** — No automated disconnect-commerce/cloud/connectors outage suite checked in.
-6. **Corruption safety** — No automated tamper policy/audit/key-state corruption suite checked in.
-7. **Supply chain SBOM/provenance** — No automated SBOM/provenance/license report for all shipped artifacts.
-8. **Diagnostic privacy bundle** — No automated generate/preview/redact/cancel/share gate checked in.
+1. **Mobile physical device acceptance** — pin `release/evidence/field/mobile-acceptance.v1.json` per `MOBILE_DEVICE_ACCEPTANCE.md`
+2. **Performance Windows launch-floor** — pin `release/evidence/field/launch-floor.v1.json` from Win11 harness
+3. **Installer three clean VMs** — pin `release/evidence/field/installer-matrix.v1.json`
 
-## Runnable gate highlights
-
-- Slice exit gates 4–13: **80/80 tests pass**
-- Process isolation egress: **100/100 denied** (adversarial suite); spawn handshake deferred optional
-- Stop conditions: **no detectable violations**
-- Feature evidence ladder: **15 features validated**
-- Cross-repo verify: **pass** (pinned commits, claims, evidence hashes)
+Cleared since prior cross-cutting pin: outage-safety, corruption-safety, accessibility (automated), supply-chain, diagnostic-privacy. Task-based screen-reader review remains documented at `release/evidence/a11y/task-based-checklist.md` (not required for automated a11y gate).
 
 ## Next steps
 
-1. Execute Windows launch-floor performance benchmark and three-VM installer matrix.
-2. Wire mobile physical device acceptance protocol and accessibility CI gate.
-3. Add outage/corruption adversarial harnesses and supply-chain SBOM automation.
-4. Promote trains to FieldProven only when deferred gates complete with pinned evidence.
+1. Capture Windows launch-floor + three-VM installer evidence; pin JSON via schemas under `release/evidence/schemas/`
+2. Run mobile device acceptance on physical iOS/Android; pin evidence
+3. Complete task-based SR checklist before claiming full accessibility FieldProven
+4. Promote trains to FieldProven only when those three evidence files validate

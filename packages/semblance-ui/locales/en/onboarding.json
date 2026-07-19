@@ -21,7 +21,9 @@
     "below_min": "Below minimum requirements",
     "tier_capable": "High Performance",
     "tier_standard": "Standard",
-    "tier_constrained": "Constrained"
+    "tier_constrained": "Constrained",
+    "recommended_model_label": "Recommended model",
+    "recommended_model_meta": "{{params}} · {{size}} download"
   },
   "data_sources": {
     "headline": "Connect your world",

@@ -82,6 +82,8 @@ export class InferenceRouter implements LLMProvider {
   private mobileEmbeddingModel: string | null;
   private bitnetProvider: LLMProvider | null;
   private bitnetReasoningModel: string | null;
+  /** True only after setBitNetProvider() following a successful model load. */
+  private bitnetLoadedAndReady: boolean;
   private fastProvider: LLMProvider | null;
   private fastModel: string | null;
   private visionProvider: LLMProvider | null;
@@ -101,6 +103,7 @@ export class InferenceRouter implements LLMProvider {
     this.mobileEmbeddingModel = config.mobileEmbeddingModel ?? null;
     this.bitnetProvider = config.bitnetProvider ?? null;
     this.bitnetReasoningModel = config.bitnetReasoningModel ?? null;
+    this.bitnetLoadedAndReady = false;
     this.fastProvider = config.fastProvider ?? null;
     this.fastModel = config.fastModel ?? null;
     this.visionProvider = config.visionProvider ?? null;
@@ -193,7 +196,7 @@ export class InferenceRouter implements LLMProvider {
    */
   async routedChat(request: ChatRequest, taskType: TaskType): Promise<ChatResponse> {
     const tier = TASK_TIER_MAP[taskType];
-    const { provider, model } = this.resolveProviderAndModel(tier, taskType);
+    const { provider, model } = await this.resolveProviderAndModelAsync(tier, taskType);
     try {
       const response = await provider.chat({
         ...request,
@@ -225,7 +228,7 @@ export class InferenceRouter implements LLMProvider {
    */
   async routedGenerate(request: GenerateRequest, taskType: TaskType): Promise<GenerateResponse> {
     const tier = TASK_TIER_MAP[taskType];
-    const { provider, model } = this.resolveProviderAndModel(tier, taskType);
+    const { provider, model } = await this.resolveProviderAndModelAsync(tier, taskType);
     try {
       const response = await provider.generate({
         ...request,
@@ -302,6 +305,7 @@ export class InferenceRouter implements LLMProvider {
     // Priority: Ollama (GPU) > BitNet (CPU) > Native (fallback).
     this.bitnetProvider = null;
     this.bitnetReasoningModel = null;
+    this.bitnetLoadedAndReady = false;
   }
 
   /**
@@ -329,6 +333,7 @@ export class InferenceRouter implements LLMProvider {
   setBitNetProvider(provider: LLMProvider, model: string): void {
     this.bitnetProvider = provider;
     this.bitnetReasoningModel = model;
+    this.bitnetLoadedAndReady = true;
   }
 
   /**
@@ -338,6 +343,7 @@ export class InferenceRouter implements LLMProvider {
   clearBitNetProvider(): void {
     this.bitnetProvider = null;
     this.bitnetReasoningModel = null;
+    this.bitnetLoadedAndReady = false;
   }
 
   /**
@@ -444,6 +450,27 @@ export class InferenceRouter implements LLMProvider {
   // ─── Private ──────────────────────────────────────────────────────────────
 
   /**
+   * Resolve provider/model with async BitNet availability gate (primary/quality tiers).
+   */
+  private async resolveProviderAndModelAsync(
+    tier: InferenceTier,
+    taskType?: TaskType,
+  ): Promise<{ provider: LLMProvider; model: string }> {
+    const resolved = this.resolveProviderAndModel(tier, taskType);
+    if (
+      this.bitnetProvider
+      && resolved.provider === this.bitnetProvider
+      && (tier === 'primary' || tier === 'quality')
+    ) {
+      const available = await this.bitnetProvider.isAvailable().catch(() => false);
+      if (!available) {
+        return { provider: this.reasoningProvider, model: this.reasoningModel };
+      }
+    }
+    return resolved;
+  }
+
+  /**
    * Resolve the provider and model name for a given tier and task type.
    */
   private resolveProviderAndModel(tier: InferenceTier, taskType?: TaskType): { provider: LLMProvider; model: string } {
@@ -487,8 +514,8 @@ export class InferenceRouter implements LLMProvider {
       return { provider: this.qualityProvider, model: this.qualityModel };
     }
 
-    // Primary/Quality fallthrough tier: BitNet > reasoning provider
-    if (this.bitnetProvider) {
+    // Primary/Quality fallthrough: BitNet only when explicitly loaded and ready
+    if (this.bitnetProvider && this.bitnetLoadedAndReady) {
       return { provider: this.bitnetProvider, model: this.bitnetReasoningModel ?? this.reasoningModel };
     }
 

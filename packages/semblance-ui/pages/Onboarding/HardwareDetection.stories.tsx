@@ -70,6 +70,12 @@ export const StandardTier: Story = {
       gpuVramMb: 0,
       os: 'macOS 14',
       arch: 'arm64',
+      voiceCapable: true,
+    },
+    recommendedModel: {
+      displayName: 'Qwen3 4B Instruct',
+      parameterCount: '4B',
+      fileSizeLabel: '2.5 GB',
     },
     onContinue: () => {},
   },

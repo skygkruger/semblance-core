@@ -1,0 +1,68 @@
+{
+  "auditedAt": "2026-07-19T19:41:02.099Z",
+  "pass": true,
+  "total": 12,
+  "failed": 0,
+  "checks": [
+    {
+      "id": "tauri-runtimes-resource",
+      "ok": true,
+      "detail": "tauri.conf.json bundles runtimes/**/*"
+    },
+    {
+      "id": "tauri-sidecar-bridges",
+      "ok": true,
+      "detail": "bundles 4 sidecar bridges"
+    },
+    {
+      "id": "bundle-runtimes-exists",
+      "ok": true,
+      "detail": "scripts/bundle-runtimes.js"
+    },
+    {
+      "id": "bundle-runtimes-check",
+      "ok": true,
+      "detail": "[bundle-runtimes] OK darwin-arm64 node=v25.9.0 sha256=c8bc91c8219053214a7adfb4ff03cf784d1fe20a0eaf172551d338a68ac2181e"
+    },
+    {
+      "id": "registry-recommend-exports",
+      "ok": true,
+      "detail": "found 2 required markers"
+    },
+    {
+      "id": "bridge-multi-model-handlers",
+      "ok": true,
+      "detail": "found 6 required markers"
+    },
+    {
+      "id": "onboarding-download-reasoning",
+      "ok": true,
+      "detail": "handleStartModelDownloads uses getRecommendedReasoningModel(tier)"
+    },
+    {
+      "id": "onboarding-flow-wiring",
+      "ok": true,
+      "detail": "found 4 required markers"
+    },
+    {
+      "id": "settings-ai-engine-activate",
+      "ok": true,
+      "detail": "found 2 required markers"
+    },
+    {
+      "id": "inference-router-bitnet-gate",
+      "ok": true,
+      "detail": "found 3 required markers"
+    },
+    {
+      "id": "create-llm-no-pre-bitnet",
+      "ok": true,
+      "detail": "createLLMProvider does not pre-attach BitNet to router"
+    },
+    {
+      "id": "settings-mutual-exclusion-prefs",
+      "ok": true,
+      "detail": "BitNet/standard activate handlers clear opposing pref"
+    }
+  ]
+}
