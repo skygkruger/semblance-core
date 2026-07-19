@@ -226,6 +226,14 @@ import {
   getActionReceipt,
 } from '../../../proof/src/index.js';
 import { assertAuditPendingBeforeDispatch } from '../../../gateway/audit/trail.js';
+import {
+  approveRepresentativeEmailWorkflow,
+  createEntitlementGateFromSnapshot,
+  createRepresentativeEmailWorkflowStore,
+  runRepresentativeEmailWorkflow,
+  type RepresentativeEmailWorkflowDeps,
+  type RepresentativeEmailWorkflowStore,
+} from '../../../core/agent/representative-email-workflow.js';
 import { oauthClients, UNCONFIGURED_CLIENT_ID } from '../../../gateway/config/oauth-clients.js';
 import { registerAllConnectors, wireConnectorRouter } from '../../../gateway/services/connector-registration.js';
 import type { ConnectorRouter } from '../../../gateway/services/connector-router.js';
@@ -382,6 +390,7 @@ let clipboardRecentActions: Array<{ patternType: string; action: string; timesta
 // Premium state
 let premiumGate: PremiumGate | null = null;
 let reservationStore: FoundingReservationStore | null = null;
+let representativeEmailWorkflowStore: RepresentativeEmailWorkflowStore | null = null;
 
 // Sovereignty feature state
 let livingWillExporter: LivingWillExporter | null = null;
@@ -954,6 +963,7 @@ async function handleInitialize(): Promise<unknown> {
   );
   await Promise.race([gateway.start(), gatewayTimeout]);
   console.error('[sidecar] Gateway started');
+  representativeEmailWorkflowStore = createRepresentativeEmailWorkflowStore(join(dataDir, 'actions.db'));
 
   // Seed allowlist with Google API domains (needed for Gmail, Calendar, Drive)
   try {
@@ -3558,6 +3568,65 @@ async function handleGetMeetingPrep(params: { event_id: string }): Promise<unkno
 async function handleProactiveRun(): Promise<unknown[]> {
   if (!proactiveEngine) return [];
   return await proactiveEngine.run();
+}
+
+function buildRepresentativeEmailWorkflowDeps(): RepresentativeEmailWorkflowDeps {
+  if (!gateway || !representativeEmailWorkflowStore) {
+    throw new Error('Representative email workflow store not initialized');
+  }
+  if (!ipAdapters.emailDrafter || !ipAdapters.followUpTracker) {
+    throw new Error('Digital Representative email workflow adapters are not loaded');
+  }
+
+  const entitlement = createEntitlementGateFromSnapshot({
+    isPremium: premiumGate?.isPremium() ?? false,
+    active: premiumGate?.isPremium() ?? false,
+  });
+
+  const emailDomainTier = core?.agent?.autonomy?.getDomainTier('email') ?? 'guardian';
+
+  return {
+    entitlement,
+    followUpTracker: ipAdapters.followUpTracker,
+    emailDrafter: ipAdapters.emailDrafter,
+    autonomyTier: emailDomainTier,
+    actionStore: gateway.getActionLifecycleStore(),
+    workflowStore: representativeEmailWorkflowStore,
+    logAuditPending: ({ requestId, payloadHash, signature }) =>
+      gateway!.getAuditTrail().logPending({
+        requestId,
+        action: 'email.send',
+        payloadHash,
+        signature,
+        estimatedTimeSavedSeconds: 120,
+      }),
+    assertAuditPendingBeforeDispatch: (auditPendingId, requestId) => {
+      assertAuditPendingBeforeDispatch(gateway!.getAuditTrail(), requestId, auditPendingId);
+    },
+    executeEmailSend: async (payload) => {
+      const adapter = gateway!.getServiceRegistry().getAdapter('email.send');
+      return adapter.execute('email.send', payload);
+    },
+  };
+}
+
+async function handleDrRunEmailWorkflow(params: {
+  followUpId?: string;
+  to?: string;
+  merchantName?: string;
+  subject?: string;
+  intent?: string;
+}): Promise<unknown> {
+  const deps = buildRepresentativeEmailWorkflowDeps();
+  return runRepresentativeEmailWorkflow(params, deps);
+}
+
+async function handleDrApproveEmailWorkflow(params: { workflowId?: string }): Promise<unknown> {
+  if (!params.workflowId) {
+    throw new Error('workflowId is required');
+  }
+  const deps = buildRepresentativeEmailWorkflowDeps();
+  return approveRepresentativeEmailWorkflow(params.workflowId, deps);
 }
 
 async function handleActionApprove(params: { action_id: string }): Promise<unknown> {
@@ -10467,6 +10536,32 @@ async function handleRequest(req: Request): Promise<void> {
             action: getWorkAction(gateway.getActionLifecycleStore(), result.record.actionId),
             error: result.execution.error,
           });
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'dr:run_email_workflow': {
+        try {
+          result = await handleDrRunEmailWorkflow(params as {
+            followUpId?: string;
+            to?: string;
+            merchantName?: string;
+            subject?: string;
+            intent?: string;
+          });
+          respond(id, result);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
+        break;
+      }
+
+      case 'dr:approve_email_workflow': {
+        try {
+          result = await handleDrApproveEmailWorkflow(params as { workflowId?: string });
+          respond(id, result);
         } catch (err) {
           respondError(id, (err as Error).message);
         }

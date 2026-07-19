@@ -74,6 +74,30 @@ export type {
 } from './device-handoff.js';
 
 export {
+  approveRepresentativeEmailWorkflow,
+  createEntitlementGateFromSnapshot,
+  createRepresentativeEmailWorkflowStore,
+  hashRepresentativeEmailPayload,
+  isRepresentativeEmailWorkflowRestartPersistent,
+  reopenRepresentativeEmailWorkflowStores,
+  runRepresentativeEmailWorkflow,
+  getRepresentativeEmailWorkflowAuditRecord,
+} from './representative-email-workflow.js';
+export type {
+  EntitlementGatePort,
+  FollowUpNeed,
+  FollowUpTrackerPort,
+  RepresentativeEmailDraft,
+  RepresentativeEmailDrafterPort,
+  RepresentativeEmailWorkflowDeps,
+  RepresentativeEmailWorkflowRecord,
+  RepresentativeEmailWorkflowResult,
+  RepresentativeEmailWorkflowStatus,
+  RepresentativeEmailWorkflowStore,
+  RunRepresentativeEmailWorkflowInput,
+} from './representative-email-workflow.js';
+
+export {
   MemoryProposalStore,
   MemoryProposalError,
   createMemoryProposal,

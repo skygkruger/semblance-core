@@ -18,6 +18,10 @@ export {
   getLoadedExtensions,
   registerExtension,
   clearExtensions,
+  getDigitalRepresentativeArtifactStatus,
+  type LoadExtensionsOptions,
+  type DigitalRepresentativeArtifactStatus,
+  type SignedDrPaths,
 } from './loader.js';
 
 export {

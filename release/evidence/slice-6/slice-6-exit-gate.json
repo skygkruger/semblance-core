@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "slice": 6,
+  "releaseId": "signed-digital-representative-2026-07-18",
+  "generatedAt": "2026-07-19T03:46:00.000Z",
+  "exitGate": {
+    "representativeTypecheckOrProvePack": {
+      "RuntimeVerified": true,
+      "evidence": "docs/release-manifests/evidence/slice-6/representative/prove-pack.txt",
+      "notes": "DR prove-pack and typecheck captured under representative repo evidence; core exit gate verifies prove-pack path"
+    },
+    "signedArtifactVerification": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-6/signed-artifact.txt",
+      "notes": "verifySignedArtifactPaths validates signed fixture independently of runtime load"
+    },
+    "paidReadinessWithoutArtifact": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-6/paid-readiness.txt",
+      "notes": "PremiumGate.assertDigitalRepresentativeReady throws when signed runner artifact absent"
+    },
+    "extensionSandboxEgress": {
+      "AdversariallyVerified": true,
+      "evidence": "release/evidence/slice-6/sandbox-egress.txt",
+      "notes": "extension-runner sandbox denies ambient fetch/network"
+    },
+    "representativeEmailWorkflowAudited": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-6/representative-workflow.txt",
+      "notes": "Three consecutive guardian-approved representative email.send workflows complete with audit records"
+    },
+    "reservationJwtRejected": {
+      "AdversariallyVerified": true,
+      "evidence": "release/evidence/slice-6/reservation-jwt.txt",
+      "notes": "Kernel entitlement service rejects reservation JWT bearers"
+    },
+    "commerceNewSalesDisabled": {
+      "Implemented": true,
+      "evidence": "release/evidence/slice-6/commerce-freeze.txt",
+      "notes": "release-manifest commerce.newSalesEnabled === false"
+    },
+    "workflowRestartPersistence": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-6/restart-persist.txt",
+      "notes": "Workflow + action lifecycle records survive actions.db reopen"
+    }
+  },
+  "completedSlicesEligible": true,
+  "codeProvenExitItems": 8,
+  "runtimeVerifiedExitItems": 7,
+  "honestBlockers": []
+}

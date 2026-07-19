@@ -18,6 +18,8 @@
     "paths": {
       "@semblance/core": ["./packages/core/index.ts"],
       "@semblance/core/*": ["./packages/core/*"],
+      "@semblance/extension-sdk": ["./packages/extension-sdk/src/index.ts"],
+      "@semblance/extension-runner": ["./packages/extension-runner/src/index.ts"],
       "@semblance/gateway": ["./packages/gateway/index.ts"],
       "@semblance/gateway/*": ["./packages/gateway/*"],
       "@semblance/ui": ["./packages/semblance-ui/index.ts"],

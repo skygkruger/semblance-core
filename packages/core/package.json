@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@semblance/extension-runner": "workspace:*",
+    "@semblance/extension-sdk": "workspace:*",
     "@semblance/kernel": "workspace:*",
     "@semblance/protocol": "workspace:*",
     "@lancedb/lancedb": "^0.26.2",

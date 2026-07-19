@@ -13,6 +13,10 @@
  */
 
 import type { DatabaseHandle } from '../platform/types.js';
+import {
+  assertDigitalRepresentativeReady,
+  type DigitalRepresentativeReadinessInput,
+} from './dr-readiness.js';
 import { validatePaidLicenseKey } from './license-keys.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -387,5 +391,16 @@ export class PremiumGate {
     return (Object.entries(FEATURE_TIER_MAP) as [PremiumFeature, LicenseTier][])
       .filter(([, requiredTier]) => currentRank >= TIER_RANK[requiredTier])
       .map(([feature]) => feature);
+  }
+
+  /**
+   * Fail closed for premium users when the signed DR artifact is absent or invalid.
+   */
+  assertDigitalRepresentativeReady(status: Omit<DigitalRepresentativeReadinessInput, 'isPremium'>): void {
+    assertDigitalRepresentativeReady({
+      isPremium: this.isPremium(),
+      artifactPresent: status.artifactPresent,
+      artifactValid: status.artifactValid,
+    });
   }
 }
