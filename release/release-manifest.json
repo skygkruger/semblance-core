@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "releaseId": "local-chat-vault-memory-2026-07-18",
-  "generatedAt": "2026-07-18T20:05:00Z",
+  "releaseId": "gmail-calendar-actions-2026-07-18",
+  "generatedAt": "2026-07-18T20:14:00Z",
   "repositories": {
     "core": {
-      "sourceCommit": "03fc64d23f1af24c244fa299eead4c83dfb5f579",
-      "sourceTreeHash": "9d6592ac0607916f98f82068054404e4785fb06d"
+      "sourceCommit": "48147d03a59e68309ffac0deb4a8d9a9955d71b8",
+      "sourceTreeHash": "1b4a8767bad08b2eaa2025c3bbb2dfc61362fd93"
     },
     "representative": {
       "sourceCommit": "dcd6d71dcc7d6d367d4e6626635e16744185de4d",
@@ -355,6 +355,87 @@
         "RuntimeVerified",
         "AdversariallyVerified"
       ]
+    },
+    {
+      "id": "slice-5-exit-gate",
+      "repository": "core",
+      "path": "release/evidence/slice-5/slice-5-exit-gate.json",
+      "sha256": "8955f5275383a242d9bfc07fdbd645ac5b34c3ad6c4f92ef46a54748db88c960",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-5-exit-gate-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-5/exit-gate.txt",
+      "sha256": "4c3f6bd467809d8e88d77385dcf54e47bb5e4389efacb7db974084509af6b5f6",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-5-vault-ingest",
+      "repository": "core",
+      "path": "release/evidence/slice-5/vault-ingest.txt",
+      "sha256": "516df171dd7f280e03aab8a2f697ef25a3c42d4a4b0b3ead6ea9f9ef178262d6",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-5-grounded-sources",
+      "repository": "core",
+      "path": "release/evidence/slice-5/grounded-sources.txt",
+      "sha256": "5f851c65a56f3cece71bca4bf1c1cd0de2f7d631f6bde7910edef466df006d9f",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-5-guardian-approval",
+      "repository": "core",
+      "path": "release/evidence/slice-5/guardian-approval.txt",
+      "sha256": "8550bdbf9a44956f64ac4792ba1f0e95d117e1f6ec21add9ca9b1568a0fae0b1",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-5-audit-pending",
+      "repository": "core",
+      "path": "release/evidence/slice-5/audit-pending-dispatch.txt",
+      "sha256": "b0103af78564da2e4f04014e1e23d0afdc830cb989a0e8bdf7c4c655fd26d1ea",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-5-timeout-unknown",
+      "repository": "core",
+      "path": "release/evidence/slice-5/timeout-unknown.txt",
+      "sha256": "66c91cfe803186200b2f293dfc8fc8091ac94ce81a0d45f6da6dd6b3e06236eb",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-5-reconcile-dedupe",
+      "repository": "core",
+      "path": "release/evidence/slice-5/reconcile-dedupe.txt",
+      "sha256": "82d97d5a63f20f45484af1f62ad6e7c441318f4675c2d412820806e1dfda17ce",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
+    },
+    {
+      "id": "slice-5-work-proof",
+      "repository": "core",
+      "path": "release/evidence/slice-5/work-proof.txt",
+      "sha256": "5f8d233f3dfd4fefe18914a0df742aa12a927a1283352408b361046670c563ad",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
     }
   ],
   "commerce": {
@@ -376,7 +457,8 @@
     1,
     2,
     3,
-    4
+    4,
+    5
   ],
   "features": [
     {
@@ -502,6 +584,33 @@
         "slice-4-grounded-chat",
         "slice-4-memory-persist",
         "slice-4-egress"
+      ],
+      "protocolVersions": {
+        "releaseEvidence": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": null
+    },
+    {
+      "id": "gmail-calendar-actions",
+      "name": "Gmail and calendar actions with audit and proof",
+      "repository": "core",
+      "state": "RuntimeVerified",
+      "usesDigitalRepresentative": false,
+      "signedArtifactNames": [],
+      "evidenceIds": [
+        "slice-5-exit-gate",
+        "slice-5-exit-gate-tests",
+        "slice-5-vault-ingest",
+        "slice-5-grounded-sources",
+        "slice-5-guardian-approval",
+        "slice-5-audit-pending",
+        "slice-5-timeout-unknown",
+        "slice-5-reconcile-dedupe",
+        "slice-5-work-proof"
       ],
       "protocolVersions": {
         "releaseEvidence": 1

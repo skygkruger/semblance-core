@@ -1,0 +1,11 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+ RUN  v4.0.18 /Users/veridiansynthetics/semblance-core
+
+ ✓ tests/slice-5/exit-gate.test.ts (8 tests | 6 skipped) 8ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 6 skipped (8)
+   Start at  20:14:07
+   Duration  697ms (transform 359ms, setup 81ms, import 523ms, tests 8ms, environment 0ms)
+

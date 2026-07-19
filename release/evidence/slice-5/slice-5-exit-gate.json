@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "slice": 5,
+  "releaseId": "gmail-calendar-actions-2026-07-18",
+  "generatedAt": "2026-07-18T20:14:00.000Z",
+  "exitGate": {
+    "vaultConnectorIngest": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-5/vault-ingest.txt",
+      "notes": "exit-gate.test.ts ingests 50 email messages and 10 calendar events; listVaultConnectedSources counts match"
+    },
+    "groundedVaultSources": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-5/grounded-sources.txt",
+      "notes": "VaultChatGroundingImpl retrieve returns email: and calendar: source chunks after connector ingest"
+    },
+    "guardianEmailSendApproval": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-5/guardian-approval.txt",
+      "notes": "validateAndExecute with guardian tier returns requires_approval; adapter execute not called"
+    },
+    "auditPendingBeforeDispatch": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-5/audit-pending-dispatch.txt",
+      "notes": "assertAuditPendingBeforeDispatch requires durable pending audit entry before dispatch"
+    },
+    "dispatchTimeoutUnknown": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-5/timeout-unknown.txt",
+      "notes": "executeAuditedAction with dispatchTimeoutMs=5 marks action state unknown on slow execute"
+    },
+    "reconcilePreventsDuplicateSend": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-5/reconcile-dedupe.txt",
+      "notes": "unknown action reconciles to completed via external confirmation without redispatch execute"
+    },
+    "workProofReceipt": {
+      "RuntimeVerified": true,
+      "evidence": "release/evidence/slice-5/work-proof.txt",
+      "notes": "getActionReceipt builds verifiable receipt; listWorkActions includes completed action"
+    }
+  },
+  "completedSlicesEligible": true,
+  "codeProvenExitItems": 7,
+  "runtimeVerifiedExitItems": 7,
+  "honestBlockers": []
+}
