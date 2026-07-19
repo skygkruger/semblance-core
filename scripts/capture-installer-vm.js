@@ -52,13 +52,27 @@ Exit codes: 0 full lifecycle pass, 1 failure / incomplete lifecycle, 2 deferred 
 }
 
 function runMsiexec(args, label) {
-  const result = spawnSync('msiexec', args, {
+  const logPath = join(require('node:os').tmpdir(), `semblance-msiexec-${Date.now()}.log`);
+  const withLog = [...args, '/l*v', logPath];
+  const result = spawnSync('msiexec', withLog, {
     encoding: 'utf8',
     timeout: 600000,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   if (result.status !== 0) {
-    throw new Error(`${label} failed (exit ${result.status}): ${result.stderr || result.stdout}`);
+    let logTail = '';
+    try {
+      if (existsSync(logPath)) {
+        const full = readFileSync(logPath, 'utf8');
+        logTail = full.slice(-2000);
+      }
+    } catch {
+      // ignore log read failures
+    }
+    throw new Error(
+      `${label} failed (exit ${result.status}): ${result.stderr || result.stdout}\n`
+      + `msiexec log tail (${logPath}):\n${logTail}`,
+    );
   }
 }
 
@@ -85,15 +99,72 @@ function getMsiProductCode(msiPath) {
 
 function findInstalledSidecar() {
   const os = require('node:os');
-  const candidates = [
-    join(os.homedir(), 'AppData', 'Local', 'Programs', 'Semblance', 'resources', 'sidecar', 'bridge.cjs'),
-    join('C:\\', 'Program Files', 'Semblance', 'resources', 'sidecar', 'bridge.cjs'),
-    join('C:\\', 'Program Files (x86)', 'Semblance', 'resources', 'sidecar', 'bridge.cjs'),
+  const roots = [
+    join(os.homedir(), 'AppData', 'Local', 'Programs', 'Semblance'),
+    join('C:\\', 'Program Files', 'Semblance'),
+    join('C:\\', 'Program Files (x86)', 'Semblance'),
   ];
+  const relatives = [
+    join('sidecar', 'bridge.cjs'),
+    join('resources', 'sidecar', 'bridge.cjs'),
+  ];
+  const candidates = [];
+  for (const root of roots) {
+    for (const rel of relatives) {
+      candidates.push(join(root, rel));
+    }
+  }
   for (const candidate of candidates) {
     if (existsSync(candidate)) return candidate;
   }
+
+  // Last resort: WiX/NSIS layout can vary by Tauri version — search under known roots.
+  const searchPs = [
+    '$ErrorActionPreference = "SilentlyContinue"',
+    '$roots = @(',
+    `  '${roots[0].replace(/'/g, "''")}',`,
+    `  '${roots[1].replace(/'/g, "''")}',`,
+    `  '${roots[2].replace(/'/g, "''")}'`,
+    ')',
+    'foreach ($r in $roots) {',
+    '  if (Test-Path $r) {',
+    '    $hit = Get-ChildItem -Path $r -Filter bridge.cjs -Recurse -File | Select-Object -First 1',
+    '    if ($null -ne $hit) { $hit.FullName; exit 0 }',
+    '  }',
+    '}',
+    'exit 1',
+  ].join('; ');
+  const result = spawnSync('powershell', ['-NoProfile', '-Command', searchPs], {
+    encoding: 'utf8',
+    timeout: 60000,
+  });
+  const found = (result.stdout || '').trim().split(/\r?\n/).filter(Boolean).pop();
+  if (result.status === 0 && found && existsSync(found)) return found;
   return null;
+}
+
+function describeInstallLayout() {
+  const os = require('node:os');
+  const roots = [
+    join(os.homedir(), 'AppData', 'Local', 'Programs', 'Semblance'),
+    join('C:\\', 'Program Files', 'Semblance'),
+    join('C:\\', 'Program Files (x86)', 'Semblance'),
+  ];
+  const lines = [];
+  for (const root of roots) {
+    if (!existsSync(root)) {
+      lines.push(`${root}: (missing)`);
+      continue;
+    }
+    const listing = spawnSync('powershell', [
+      '-NoProfile',
+      '-Command',
+      `Get-ChildItem -LiteralPath '${root.replace(/'/g, "''")}' -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 40 -ExpandProperty FullName`,
+    ], { encoding: 'utf8', timeout: 60000 });
+    lines.push(`${root}:`);
+    lines.push((listing.stdout || listing.stderr || '(empty)').trim() || '(empty)');
+  }
+  return lines.join('\n');
 }
 
 function sidecarInstalled() {
@@ -202,7 +273,9 @@ function captureVmLifecycle(options) {
 
     installMsi(primaryMsi);
     let sidecar = findInstalledSidecar();
-    if (!sidecar) throw new Error('Sidecar missing after install');
+    if (!sidecar) {
+      throw new Error(`Sidecar missing after install.\nInstall layout:\n${describeInstallLayout()}`);
+    }
     runSidecarInitializeOnly(sidecar, 'install');
     installPass = true;
 
