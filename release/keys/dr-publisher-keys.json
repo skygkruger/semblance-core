@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "keys": [
+    {
+      "keyId": "dr-test-publisher-v1",
+      "algorithm": "Ed25519",
+      "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAT4QWw+qacwmwIV1QmezIXHznszKPObzi6pTCsAIgoJs=\n-----END PUBLIC KEY-----\n",
+      "purpose": "digital-representative-extension"
+    }
+  ]
+}
