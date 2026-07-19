@@ -15,9 +15,9 @@ on:
         description: Optional URL to download MSI when build_msi=false (leave empty to defer matrix)
         required: false
         type: string
-  push:
-    branches:
-      - 'cursor/field-proof-multi-model-*'
+  # Push trigger disabled — launch-floor needs a host where sidecar initialize
+  # completes in <=90s; GHA often hangs without native/Tauri runtime. Use
+  # workflow_dispatch (optionally build_msi=true) on a capable Windows agent.
 
 permissions:
   contents: read

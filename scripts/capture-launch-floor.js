@@ -230,6 +230,8 @@ async function main() {
     readySeconds = await measureInitializeReadySeconds();
   } catch (cause) {
     console.error(`Initialize benchmark failed: ${cause.message}`);
+    console.error('Hint: launch-floor requires a Windows host where sidecar initialize');
+    console.error('completes within 90s (installed MSI + native runtime preferred over bare bridge.cjs).');
     return 1;
   }
 

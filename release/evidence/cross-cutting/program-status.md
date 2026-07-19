@@ -55,15 +55,18 @@ Capture scripts write evidence **only when checks actually pass**. Operators pin
 | Mobile device acceptance | `node scripts/capture-mobile-acceptance.js --interactive` or `--from-checklist checklist.json` | `node scripts/verify-field-evidence.js --mobile-acceptance` |
 | Task-based a11y (partial) | `node scripts/run-task-based-a11y.js` | Manual SR checklist still required |
 
-**Windows CI:** `.github/workflows/field-proof-windows.yml` (workflow_dispatch). Always runs launch-floor on `windows-latest`. Installer matrix runs when `build_msi=true` or `installer_url` is supplied; otherwise matrix is deferred (no fake PASS). Same-version reinstall proxy for CI: `SEMBLANCE_INSTALLER_MATRIX_ALLOW_SAME_VERSION_REENSTALL=1`.
+**Windows CI:** `.github/workflows/field-proof-windows.yml` (**workflow_dispatch only**). Launch-floor capture on `windows-latest` reached hardware check (4c / ~16GB class / disk OK) but **initialize timed out at 300s** without Tauri native runtime — no PASS evidence written (honest fail). Installer matrix requires `build_msi=true` or `installer_url`. Same-version reinstall proxy: `SEMBLANCE_INSTALLER_MATRIX_ALLOW_SAME_VERSION_REENSTALL=1`.
 
 **PowerShell wrapper:** `.\scripts\windows-launch-floor-bench.ps1`
 
-**Mobile protocol:** `semblence-representative/docs/MOBILE_DEVICE_ACCEPTANCE.md`
+**Mobile protocol:** `semblence-representative/docs/MOBILE_DEVICE_ACCEPTANCE.md`  
+This host has Xcode SDKs but **no iOS Simulator runtimes / no adb** — physical devices still required; `capture-mobile-acceptance.js` is ready for operators.
+
+**A11y task-based (automated half):** `release/evidence/a11y/task-based-2026-07-19.md` — fixture keyboard/landmark checks **PASS**. VoiceOver/NVDA items remain unchecked (not FieldProven SR).
 
 ## Next steps
 
-1. Run Windows field-proof workflow or local Windows captures; pin `launch-floor.v1.json` and `installer-matrix.v1.json`
-2. Run mobile device acceptance on physical iOS/Android; pin evidence via `capture-mobile-acceptance.js`
-3. Complete task-based SR checklist (`run-task-based-a11y.js` automates fixtures only)
-4. Promote trains to FieldProven only when those three evidence files validate
+1. On a real Win11 launch-floor machine (or installed MSI), run `capture-launch-floor.js` / installer matrix; pin JSON
+2. On physical iOS + Android, complete `MOBILE_DEVICE_ACCEPTANCE.md` → `capture-mobile-acceptance.js`
+3. Complete VoiceOver/NVDA sign-off on production desktop build
+4. Promote trains to FieldProven only when the three field evidence files validate
