@@ -229,7 +229,10 @@ import {
   migrateLegacyOAuthTokensToKernel,
   createMemoryKeyStore,
   decideExecutionDestination,
+  createAttestationNonceGuard,
+  verifyAttestation,
   type ExecutionDestinationPolicyInput,
+  type AttestationNonceGuard,
 } from '../../../kernel/src/index.js';
 import {
   listWorkActions,
@@ -382,6 +385,7 @@ let executionDestinationPolicyStore: {
 let executionReceiptStore: ReturnType<
   typeof import('../../../cloud-broker/src/execution-receipt-store.js').createExecutionReceiptStore
 > | null = null;
+const attestationNonceGuard: AttestationNonceGuard = createAttestationNonceGuard();
 let documentsDb: Database.Database | null = null;
 let emailIndexer: EmailIndexer | null = null;
 let calendarIndexer: CalendarIndexer | null = null;
@@ -11926,6 +11930,30 @@ async function handleRequest(req: Request): Promise<void> {
           return (s ?? 0) + p.estimatedCost;
         }, null as number | null);
         respond(id, { providers, totalRequests, totalCost });
+        break;
+      }
+
+      case 'confidential:verify_attestation': {
+        try {
+          const verifyParams = params as {
+            evidence?: unknown;
+            expectedWorkloadId?: string;
+            expectedPolicyVersion?: string;
+          };
+          if (typeof verifyParams.expectedWorkloadId !== 'string'
+            || verifyParams.expectedWorkloadId.trim().length === 0) {
+            respondError(id, 'expectedWorkloadId is required');
+            break;
+          }
+          const result = verifyAttestation(verifyParams.evidence, {
+            expectedWorkloadId: verifyParams.expectedWorkloadId,
+            expectedPolicyVersion: verifyParams.expectedPolicyVersion,
+            nonceGuard: attestationNonceGuard,
+          });
+          respond(id, result);
+        } catch (err) {
+          respondError(id, (err as Error).message);
+        }
         break;
       }
 

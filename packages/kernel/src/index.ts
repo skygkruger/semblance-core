@@ -196,3 +196,30 @@ export {
   type ExecuteAuditedActionParams,
   type ExecuteAuditedActionResult,
 } from './actions/lifecycle.js';
+export {
+  CONFIDENTIAL_NO_FALLBACK,
+  CURRENT_MEASUREMENT_POLICY_VERSION,
+  compareTcbVersions,
+  getMeasurementPolicy,
+  isMeasurementApproved,
+  isTcbDowngrade,
+  listActiveMeasurementPolicies,
+  rotateMeasurementPolicy,
+  setMeasurementPolicyForTests,
+  resetMeasurementPoliciesForTests,
+  type MeasurementPolicyRecord,
+  type RotateMeasurementPolicyInput,
+} from './confidential/measurement-policy.js';
+export {
+  DEFAULT_ATTESTATION_ISSUER_KEY_ID,
+  createAttestationNonceGuard,
+  verifyAttestation,
+  attestationSigningPayload,
+  setAttestationIssuerPublicKey,
+  resetAttestationIssuerPublicKeysForTests,
+  InMemoryAttestationNonceGuard,
+  type AttestationNonceGuard,
+  type AttestationVerificationContext,
+  type AttestationVerificationResult,
+  type ConfidentialAttestationEvidence,
+} from './confidential/attestation-verifier.js';
