@@ -179,11 +179,28 @@ async function measureInitializeReadySeconds() {
   });
 
   let stderrBuffer = '';
-  sidecar.stderr.on('data', (chunk) => { stderrBuffer += chunk.toString(); });
+  let stdoutBuffer = '';
+  sidecar.stderr.on('data', (chunk) => {
+    const text = chunk.toString();
+    stderrBuffer += text;
+    process.stderr.write(text);
+  });
+  sidecar.stdout.on('data', (chunk) => {
+    stdoutBuffer += chunk.toString();
+  });
+  sidecar.on('error', (err) => {
+    console.error(`sidecar spawn error: ${err.message}`);
+  });
+  sidecar.on('exit', (code, signal) => {
+    console.error(`[capture] sidecar exited code=${code} signal=${signal}`);
+  });
 
   try {
-    await new Promise((r) => setTimeout(r, 500));
-    const result = await sendRequest(sidecar, 'initialize', {}, 300000);
+    await new Promise((r) => setTimeout(r, 800));
+    if (sidecar.exitCode !== null) {
+      throw new Error(`sidecar exited before initialize (code=${sidecar.exitCode}). stderr tail:\n${stderrBuffer.slice(-4000)}`);
+    }
+    const result = await sendRequest(sidecar, 'initialize', {}, 120000);
     if (result.error) {
       throw new Error(`initialize failed: ${JSON.stringify(result.error)}`);
     }
@@ -197,6 +214,12 @@ async function measureInitializeReadySeconds() {
       console.warn('Warning: stderr lacked Ready/initialized marker; trusting initialize RPC success');
     }
     return readySeconds;
+  } catch (cause) {
+    console.error('--- sidecar stderr (tail) ---');
+    console.error(stderrBuffer.slice(-6000) || '(empty)');
+    console.error('--- sidecar stdout (tail) ---');
+    console.error(stdoutBuffer.slice(-2000) || '(empty)');
+    throw cause;
   } finally {
     if (!sidecar.killed) sidecar.kill();
   }
