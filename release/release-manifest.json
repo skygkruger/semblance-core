@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "releaseId": "attested-confidential-compute-2026-07-19",
-  "generatedAt": "2026-07-19T08:32:00Z",
+  "releaseId": "today-proactive-agency-2026-07-19",
+  "generatedAt": "2026-07-19T08:52:00Z",
   "repositories": {
     "core": {
-      "sourceCommit": "b940f63825068cbf86c1904b6f1ab2a15e953d1e",
-      "sourceTreeHash": "5c28be2c71dfd418807d3009752fc0957c0f4196"
+      "sourceCommit": "1d27462f49f2c92ec2efddbf0fcde0645cb6865b",
+      "sourceTreeHash": "17338a9ff942b772e0f2de4744c459778a152404"
     },
     "representative": {
-      "sourceCommit": "89405cdf94a8e1b5ff7c8208af79148a68a6ea18",
-      "sourceTreeHash": "cf75b09083b2b09f426dfe8cb8d303aa1c1e8079",
+      "sourceCommit": "8be2a0675378a935b8163c01ec9bc35041ac7c23",
+      "sourceTreeHash": "4fbfa65fad03d5934c140cb971855d501dd15d99",
       "packageVersion": "0.1.0",
       "artifactHash": "6e69c2a0128e888da2f37a5e3f92ee078748a87ff508ade088d0a576baa630fa",
       "extensionManifestHash": "8ff4eb6ec9a66afa0fa080daf63b7c1f6365db067437c43db28f5fd117f073be"
@@ -704,6 +704,45 @@
         "RuntimeVerified",
         "AdversariallyVerified"
       ]
+    },
+    {
+      "id": "slice-10-exit-gate",
+      "repository": "core",
+      "path": "release/evidence/slice-10/slice-10-exit-gate.json",
+      "sha256": "9d6ba9a18517a1d2459a6cb76130872f056308f7dc4abcbf19ddd085deac95a2",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-10-exit-gate-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-10/exit-gate.txt",
+      "sha256": "9696e441454d0380800ea15b8d091cd2c31bd496910a03a3fa7bcfa913d7553f",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-10-proof-center-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-10/proof-center-tests.txt",
+      "sha256": "a4d0553957227ea56a9fe016edfea4e386f028ef40e343b6bcdfcfd46cdf95d2",
+      "requiredForStates": [
+        "RuntimeVerified",
+        "AdversariallyVerified"
+      ]
+    },
+    {
+      "id": "slice-10-today-snapshot-tests",
+      "repository": "core",
+      "path": "release/evidence/slice-10/today-snapshot-tests.txt",
+      "sha256": "d41009646432007f31b7f8481d7c075ac95ad0f08d5f30a7663d27c9fa8f694e",
+      "requiredForStates": [
+        "RuntimeVerified"
+      ]
     }
   ],
   "commerce": {
@@ -730,7 +769,8 @@
     6,
     7,
     8,
-    9
+    9,
+    10
   ],
   "features": [
     {
@@ -990,6 +1030,29 @@
         "slice-9-proof-receipt-tests",
         "slice-9-cloud-budget-tests",
         "slice-9-confidential-broker-tests"
+      ],
+      "protocolVersions": {
+        "releaseEvidence": 1,
+        "execution": 1
+      },
+      "modelRuntimeHashes": [],
+      "confidentialWorkloadMeasurements": [],
+      "infrastructurePolicyVersions": [],
+      "legalNoticesVersion": "2026-07-18",
+      "representativePins": null
+    },
+    {
+      "id": "today-proactive-agency",
+      "name": "Today, proactive intelligence, and agency domains",
+      "repository": "core",
+      "state": "AdversariallyVerified",
+      "usesDigitalRepresentative": true,
+      "signedArtifactNames": [],
+      "evidenceIds": [
+        "slice-10-exit-gate",
+        "slice-10-exit-gate-tests",
+        "slice-10-proof-center-tests",
+        "slice-10-today-snapshot-tests"
       ],
       "protocolVersions": {
         "releaseEvidence": 1,
