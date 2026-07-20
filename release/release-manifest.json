@@ -912,7 +912,7 @@
       "id": "cross-cutting-program-status",
       "repository": "core",
       "path": "release/evidence/cross-cutting/program-status.md",
-      "sha256": "7eb66ab20e316e1791733a88ae20d6161cfc9e9506857a389faf365de915ec55",
+      "sha256": "1ec6a197dff54419753d2962740ef36c3b42bba4d9af75e1b90d35e284e7a308",
       "requiredForStates": [
         "RuntimeVerified"
       ]

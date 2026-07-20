@@ -81,3 +81,11 @@ Done when:
 2. Multi-model audit passes — **met**
 3. Follow-ups FU-1…FU-5 listed honestly — **met**
 4. No fake FieldProven for hardware/human-only gates — **met**
+
+## Active product plan
+
+**Production / consumer-ready phases:** `semblence-representative/docs/superpowers/plans/2026-07-19-production-consumer-ready-phases.md`
+
+- Launch bar: Train A–C FieldProven desktop (earliest paid launch), then full platform.
+- Voice, finance, health, web search, calendar, proactive insights are **v1 requirements** (not a cut list).
+- **Current execution: Phase 1** — Mac release binary, install, real-data dogfood, polish.

@@ -1,0 +1,18 @@
+---
+description: Active production/consumer-ready phase plan — Phase 1 Mac dogfood in progress
+alwaysApply: true
+---
+
+# Production / consumer-ready execution
+
+Canonical plan (private repo): `semblence-representative/docs/superpowers/plans/2026-07-19-production-consumer-ready-phases.md`
+
+## Locked decisions
+
+- Train A–C FieldProven desktop = earliest paid consumer launch.
+- Voice, finance, health, web search, calendar, proactive insights = **v1 requirements** (not post-v1 cuts).
+- Mobile = FU-1 follow-up; does not block Phase 1.
+
+## Current phase
+
+**Phase 1:** `preflight` → `tauri build` (macOS) → install bundle → real-data dogfood → polish punch list.
