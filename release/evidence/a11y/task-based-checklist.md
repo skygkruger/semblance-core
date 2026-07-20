@@ -39,3 +39,14 @@ Version: template (complete per release during field review)
 |          |      |                    | PASS / FAIL |
 
 Store completed checklist copy under `release/evidence/a11y/` when field review is executed.
+
+## Capture CLI (follow-up FU-2)
+
+```bash
+# After real VoiceOver/NVDA session on production desktop build:
+node scripts/capture-a11y-sr.js --interactive
+# or fill release/evidence/a11y/sr-signoff.checklist.template.json then:
+node scripts/capture-a11y-sr.js --from-checklist release/evidence/a11y/sr-signoff.checklist.template.json
+```
+
+Pins `release/evidence/a11y/sr-signoff.v1.json` only when all checks are true.

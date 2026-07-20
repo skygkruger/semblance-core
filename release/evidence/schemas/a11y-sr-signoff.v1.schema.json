@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/schemas/field-evidence/a11y-sr-signoff.v1.schema.json",
+  "title": "Task-based screen-reader sign-off evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "evidenceId",
+    "capturedAt",
+    "screenReader",
+    "platform",
+    "pass",
+    "checks"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "evidenceId": { "const": "a11y-sr-signoff" },
+    "capturedAt": { "type": "string", "format": "date-time" },
+    "releaseId": { "type": "string", "minLength": 1 },
+    "screenReader": { "enum": ["voiceover", "nvda", "jaws"] },
+    "platform": { "enum": ["macos", "windows"] },
+    "buildId": { "type": "string", "minLength": 1 },
+    "pass": { "type": "boolean" },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chatWorkflow",
+        "proofCenter",
+        "settingsNav",
+        "offlineProof",
+        "noKeyboardTraps"
+      ],
+      "properties": {
+        "chatWorkflow": { "type": "boolean" },
+        "proofCenter": { "type": "boolean" },
+        "settingsNav": { "type": "boolean" },
+        "offlineProof": { "type": "boolean" },
+        "noKeyboardTraps": { "type": "boolean" }
+      }
+    },
+    "reviewer": { "type": "string" },
+    "notes": { "type": "string" }
+  }
+}

@@ -262,7 +262,7 @@ const GATES = [
     deferredOnMissing: true,
     command: 'node scripts/verify-field-evidence.js --mobile-acceptance',
     timeoutMs: 30000,
-    deferredBlocker: 'Pinned mobile device acceptance evidence not yet captured on physical hardware',
+    deferredBlocker: 'Follow-up FU-1: pin mobile-acceptance.v1.json from physical iOS+Android (see program-status.md)',
   },
   {
     id: 'accessibility',
