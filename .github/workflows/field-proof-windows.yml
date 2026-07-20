@@ -1,0 +1,256 @@
+name: Field Proof — Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_msi:
+        description: Build Windows MSI via Tauri before installer matrix
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      installer_url:
+        description: Optional URL to download MSI when build_msi=false (leave empty to defer matrix)
+        required: false
+        type: string
+  # Push trigger disabled — launch-floor needs a host where sidecar initialize
+  # completes in <=90s; GHA often hangs without native/Tauri runtime. Use
+  # workflow_dispatch (optionally build_msi=true) on a capable Windows agent.
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: short
+  SEMBLANCE_INSTALLER_MATRIX_ALLOW_SAME_VERSION_REENSTALL: '1'
+
+jobs:
+  launch-floor:
+    name: Launch floor benchmark
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Ensure sidecar bridge is present
+        shell: bash
+        run: |
+          BRIDGE="packages/desktop/src-tauri/sidecar/bridge.cjs"
+          if [[ -f "$BRIDGE" ]]; then
+            echo "Using checked-in $BRIDGE ($(wc -c < "$BRIDGE") bytes)"
+          else
+            echo "Checked-in bridge.cjs missing; attempting bundle-sidecar.js"
+            node scripts/bundle-sidecar.js
+          fi
+          test -f "$BRIDGE"
+      - name: Copy sidecar native modules (LanceDB / sqlite)
+        # bridge.cjs marks @lancedb/lancedb + better-sqlite3 external; Tauri
+        # packages sidecar/node_modules at install time. CI must materialize
+        # the same tree or initialize fails with MODULE_NOT_FOUND.
+        run: node scripts/bundle-sidecar.js --copy-natives-only
+      - name: Capture launch-floor evidence
+        run: node scripts/capture-launch-floor.js
+      - name: Verify launch-floor evidence
+        run: node scripts/verify-field-evidence.js --launch-floor
+      - uses: actions/upload-artifact@v4
+        with:
+          name: field-launch-floor
+          path: release/evidence/field/launch-floor.v1.json
+          if-no-files-found: error
+
+  build-windows-msi:
+    name: Build Windows MSI
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_msi == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: jwlawson/actions-setup-cmake@v2
+      - run: pnpm install --frozen-lockfile
+      - name: Build Tauri Windows MSI
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        # Skip monorepo `tsc --build` (broken path resolution on clean CI) and
+        # skip esbuild sidecar rebundle (use checked-in *.cjs). Still build UI,
+        # copy sidecar natives, and bundle runtimes. beforeBuildCommand cwd is the
+        # nearest package.json dir (packages/desktop), same as tauri.conf.json.
+        shell: pwsh
+        run: |
+          $cfg = @{
+            build = @{
+              beforeBuildCommand = "cd ../.. && cd packages/desktop && npx vite build && node ../../scripts/bundle-sidecar.js --copy-natives-only && node ../../scripts/bundle-runtimes.js"
+            }
+          } | ConvertTo-Json -Depth 5 -Compress
+          Set-Content -Path field-proof-tauri.overlay.json -Value $cfg -Encoding utf8
+          pnpm --dir packages/desktop exec tauri build --target x86_64-pc-windows-msvc --config ../../field-proof-tauri.overlay.json
+      - name: Stage MSI
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path release-stage | Out-Null
+          $msi = @(Get-ChildItem "packages/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi" -File)
+          if ($msi.Count -ne 1) { throw "Expected exactly one MSI, found $($msi.Count)" }
+          Copy-Item $msi[0].FullName release-stage/semblance-windows-x86_64.msi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: field-windows-msi
+          path: release-stage/*.msi
+          if-no-files-found: error
+
+  resolve-installer:
+    name: Resolve installer artifact
+    runs-on: windows-latest
+    needs: [build-windows-msi]
+    if: always()
+    outputs:
+      matrix_enabled: ${{ steps.resolve.outputs.matrix_enabled }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download built MSI
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_msi == 'true' && needs.build-windows-msi.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: field-windows-msi
+          path: installer
+        continue-on-error: true
+      - name: Download MSI from URL
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_msi != 'true' && github.event.inputs.installer_url != ''
+        shell: powershell
+        env:
+          INSTALLER_URL: ${{ github.event.inputs.installer_url }}
+        run: |
+          New-Item -ItemType Directory -Force -Path installer | Out-Null
+          Invoke-WebRequest -Uri "$env:INSTALLER_URL" -OutFile installer/semblance-windows-x86_64.msi
+      - id: resolve
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path installer | Out-Null
+          $msi = Get-ChildItem -Path installer -Filter *.msi -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($null -ne $msi) {
+            "matrix_enabled=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            Write-Host "Installer resolved: $($msi.FullName)"
+          } else {
+            "matrix_enabled=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            Write-Host "::warning::Installer matrix deferred - set build_msi=true or provide installer_url"
+          }
+      - name: Publish resolved MSI artifact
+        if: steps.resolve.outputs.matrix_enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: field-windows-msi-resolved
+          path: installer/*.msi
+          if-no-files-found: error
+
+  installer-vm:
+    name: Installer VM matrix (${{ matrix.vmId }})
+    runs-on: windows-latest
+    needs: [resolve-installer]
+    if: needs.resolve-installer.outputs.matrix_enabled == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        vmId: [vm-a, vm-b, vm-c]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Download MSI
+        uses: actions/download-artifact@v4
+        with:
+          name: field-windows-msi-resolved
+          path: installer
+      - name: Locate MSI
+        id: msi
+        shell: powershell
+        run: |
+          $msi = Get-ChildItem -Path installer -Filter *.msi -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($null -eq $msi) { throw "MSI not found for installer matrix" }
+          "path=$($msi.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+      - name: Capture VM installer lifecycle
+        env:
+          SEMBLANCE_INSTALLER_MATRIX_ALLOW_SAME_VERSION_REENSTALL: '1'
+        run: >-
+          node scripts/capture-installer-vm.js
+          --vm-id ${{ matrix.vmId }}
+          --installer-path "${{ steps.msi.outputs.path }}"
+          --result-out "field-artifacts/vm-${{ matrix.vmId }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: field-installer-${{ matrix.vmId }}
+          path: field-artifacts/vm-${{ matrix.vmId }}.json
+          if-no-files-found: error
+
+  aggregate:
+    name: Aggregate installer matrix + verify
+    runs-on: windows-latest
+    needs: [launch-floor, installer-vm, resolve-installer]
+    if: always() && needs.launch-floor.result == 'success'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Download launch-floor evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: field-launch-floor
+          path: release/evidence/field
+      - name: Download VM results
+        if: needs.resolve-installer.outputs.matrix_enabled == 'true' && needs.installer-vm.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: field-installer-*
+          path: field-artifacts
+          merge-multiple: true
+      - name: Aggregate installer matrix
+        if: needs.resolve-installer.outputs.matrix_enabled == 'true' && needs.installer-vm.result == 'success'
+        run: >-
+          node scripts/aggregate-installer-matrix.js
+          --vm-a field-artifacts/vm-vm-a.json
+          --vm-b field-artifacts/vm-vm-b.json
+          --vm-c field-artifacts/vm-vm-c.json
+      - name: Verify field evidence
+        run: |
+          node scripts/verify-field-evidence.js --launch-floor
+          if [ -f release/evidence/field/installer-matrix.v1.json ]; then
+            node scripts/verify-field-evidence.js --installer-matrix
+          else
+            echo "Installer matrix evidence not produced (deferred — no MSI or matrix skipped)"
+            node scripts/verify-field-evidence.js --installer-matrix || true
+          fi
+        shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: field-evidence-bundle
+          path: |
+            release/evidence/field/**
+          if-no-files-found: warn

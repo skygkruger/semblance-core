@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "mobile-device-acceptance",
+  "protocolVersion": "mobile-acceptance.v1",
+  "pass": false,
+  "devices": [
+    {
+      "platform": "ios",
+      "model": "REPLACE_WITH_PHYSICAL_IPHONE_MODEL",
+      "osVersion": "REPLACE",
+      "checks": {
+        "localInference": false,
+        "sync": false,
+        "routing": false,
+        "proofOffline": false
+      },
+      "notes": "Physical device only — simulators do not qualify"
+    },
+    {
+      "platform": "android",
+      "model": "REPLACE_WITH_PHYSICAL_ANDROID_MODEL",
+      "osVersion": "REPLACE",
+      "checks": {
+        "localInference": false,
+        "sync": false,
+        "routing": false,
+        "proofOffline": false
+      },
+      "notes": "Physical device only — emulators do not qualify"
+    }
+  ],
+  "notes": "Fill after MOBILE_DEVICE_ACCEPTANCE.md protocol. Set pass:true and all checks true, then: node scripts/capture-mobile-acceptance.js --from-checklist release/evidence/field/mobile-acceptance.checklist.template.json"
+}

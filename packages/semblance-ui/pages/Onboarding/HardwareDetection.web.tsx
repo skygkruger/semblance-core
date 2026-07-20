@@ -30,7 +30,7 @@ function buildRows(info: NonNullable<HardwareDetectionProps['hardwareInfo']>, t:
   return rows;
 }
 
-export function HardwareDetection({ hardwareInfo, detecting, onContinue }: HardwareDetectionProps) {
+export function HardwareDetection({ hardwareInfo, detecting, recommendedModel, onContinue }: HardwareDetectionProps) {
   const { t } = useTranslation('onboarding');
 
   return (
@@ -70,6 +70,31 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
               </span>
             </div>
           ))}
+        </div>
+      )}
+
+      {hardwareInfo && !detecting && recommendedModel && (
+        <div
+          className="onboarding-content-frame"
+          style={{
+            width: '100%',
+            padding: '16px 18px',
+            animation: 'dissolve 700ms var(--eo) both',
+            animationDelay: '240ms',
+          }}
+        >
+          <div style={{ fontFamily: 'var(--fm)', fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#8593A4', marginBottom: 8 }}>
+            {t('hardware.recommended_model_label')}
+          </div>
+          <div style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-base)', color: '#EEF1F4', marginBottom: 4 }}>
+            {recommendedModel.displayName}
+          </div>
+          <div style={{ fontFamily: 'var(--fb)', fontSize: 'var(--text-sm)', color: '#6ECFA3' }}>
+            {t('hardware.recommended_model_meta', {
+              params: recommendedModel.parameterCount,
+              size: recommendedModel.fileSizeLabel,
+            })}
+          </div>
         </div>
       )}
 

@@ -10,7 +10,7 @@ function formatRam(mb: number): string {
   return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb} MB`;
 }
 
-export function HardwareDetection({ hardwareInfo, detecting, onContinue }: HardwareDetectionProps) {
+export function HardwareDetection({ hardwareInfo, detecting, recommendedModel, onContinue }: HardwareDetectionProps) {
   const { t } = useTranslation('onboarding');
 
   function tierLabel(tier: string): string {
@@ -63,6 +63,21 @@ export function HardwareDetection({ hardwareInfo, detecting, onContinue }: Hardw
             <Text style={styles.value}>{hardwareInfo.os} ({hardwareInfo.arch})</Text>
           </View>
         </View>
+        </OpalBorderView>
+      )}
+
+      {hardwareInfo && !detecting && recommendedModel && (
+        <OpalBorderView borderRadius={nativeRadius.lg}>
+          <View style={styles.card}>
+            <Text style={styles.label}>{t('hardware.recommended_model_label')}</Text>
+            <Text style={styles.value}>{recommendedModel.displayName}</Text>
+            <Text style={styles.tierText}>
+              {t('hardware.recommended_model_meta', {
+                params: recommendedModel.parameterCount,
+                size: recommendedModel.fileSizeLabel,
+              })}
+            </Text>
+          </View>
         </OpalBorderView>
       )}
 

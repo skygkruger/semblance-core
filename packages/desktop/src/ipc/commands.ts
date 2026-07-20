@@ -76,6 +76,8 @@ import type {
   SovereigntyReportData,
   SovereigntyReportVerifyResult,
   PrivacyStatusData,
+  DiagnosticBundle,
+  DiagnosticBundlePreview,
   ReservationImportResult,
   VaultSourceSummary,
   VaultAssertionSummary,
@@ -92,6 +94,34 @@ import type {
 } from './types.js';
 
 // ─── Hardware / Onboarding ──────────────────────────────────────────────────
+
+export interface RecommendedModelsResponse {
+  reasoning: {
+    id: string;
+    displayName: string;
+    parameterCount: string;
+    fileSizeBytes: number;
+    fileSizeLabel: string;
+  };
+  embedding: {
+    id: string;
+    displayName: string;
+    parameterCount: string;
+    fileSizeBytes: number;
+    fileSizeLabel: string;
+  };
+  fast: {
+    id: string;
+    displayName: string;
+    parameterCount: string;
+    fileSizeBytes: number;
+    fileSizeLabel: string;
+  } | null;
+}
+
+export function getRecommendedModelsForTier(tier: string): Promise<RecommendedModelsResponse> {
+  return sidecarCall<RecommendedModelsResponse>('get_recommended_models', { tier });
+}
 
 export function detectHardware(): Promise<HardwareDisplayInfo> {
   return invoke<HardwareDisplayInfo>('detect_hardware');
@@ -366,6 +396,18 @@ export function getConnectionHistory(limit: number): Promise<ConnectionRecord[]>
 
 export function generatePrivacyReport(startDate: string, endDate: string): Promise<PrivacyReport> {
   return invoke<PrivacyReport>('generate_privacy_report', { startDate, endDate, format: 'json' });
+}
+
+export function generateDiagnosticBundle(): Promise<DiagnosticBundle> {
+  return sidecarCall<DiagnosticBundle>('diagnostics:generateBundle', {});
+}
+
+export function previewDiagnosticBundle(bundle: DiagnosticBundle): Promise<DiagnosticBundlePreview> {
+  return sidecarCall<DiagnosticBundlePreview>('diagnostics:previewBundle', { bundle });
+}
+
+export function cancelDiagnosticShare(): Promise<{ cancelled: boolean }> {
+  return sidecarCall<{ cancelled: boolean }>('diagnostics:cancelShare', {});
 }
 
 export function getNetworkTrustStatus(): Promise<TrustStatus> {
@@ -1560,11 +1602,11 @@ export function getDelegatedPlan(planId: string): Promise<DelegatedPlanView> {
 }
 
 export function createDelegatedPlan(input: CreateDelegatedPlanInput): Promise<DelegatedPlanView> {
-  return sidecarCall<DelegatedPlanView>('plans:create', input);
+  return sidecarCall<DelegatedPlanView>('plans:create', { ...input } as Record<string, unknown>);
 }
 
 export function updateDelegatedPlan(input: UpdateDelegatedPlanInput): Promise<DelegatedPlanView> {
-  return sidecarCall<DelegatedPlanView>('plans:update', input);
+  return sidecarCall<DelegatedPlanView>('plans:update', { ...input } as Record<string, unknown>);
 }
 
 // ─── Cloud Bridge ──────────────────────────────────────────────────────────

@@ -181,17 +181,19 @@ export function SharedSpacesScreen() {
   }, [loadSpaceDetails, selectedSpaceId]);
 
   return (
-    <ContentBracket
-      title="Shared Spaces"
-      subtitle="Collaborate on explicitly published shared records. Personal vaults stay separate."
-    >
+    <ContentBracket>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, color: COLORS.text }}>
+        <div>
+          <h1 style={{ margin: 0, color: COLORS.text, fontSize: 22 }}>Shared Spaces</h1>
+          <p style={{ margin: '8px 0 0', color: COLORS.muted, fontSize: 14 }}>
+            Collaborate on explicitly published shared records. Personal vaults stay separate.
+          </p>
+        </div>
         {loading ? (
-          <SkeletonCard lines={4} />
+          <SkeletonCard variant="generic" message="Loading shared spaces" height={160} />
         ) : spaces.length === 0 ? (
           <EmptyFeatureState
-            title="No shared spaces yet"
-            description="Create a shared space from onboarding or invite flow to coordinate commitments, plans, and delegated actions."
+            message="No shared spaces yet. Create a shared space from onboarding or invite flow to coordinate commitments, plans, and delegated actions."
           />
         ) : (
           <>

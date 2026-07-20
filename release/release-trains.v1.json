@@ -1,18 +1,15 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-19T19:05:00Z",
-  "releaseId": "cross-cutting-release-hardening-2026-07-19",
-  "notes": "Release train maturity reflects code-proven slice exit gates and cross-cutting matrix runnable gates. FieldProven remains deferred for hardware/installer/performance gates.",
+  "generatedAt": "2026-07-19T20:00:00Z",
+  "releaseId": "field-proof-multi-model-2026-07-19",
+  "notes": "Automatable §17 gates cleared. Windows launch-floor and three-VM installer matrix pinned. Mobile physical acceptance is an explicit follow-up (FU-1), not claimed FieldProven.",
   "trains": [
     {
       "id": "A",
       "name": "Sovereign Foundation",
       "slices": [1, 2],
       "status": "RuntimeVerified",
-      "fieldProvenBlockers": [
-        "Installer three clean launch-floor VMs not yet executed",
-        "Performance Windows launch-floor benchmark deferred"
-      ],
+      "fieldProvenBlockers": [],
       "evidenceIds": [
         "slice-2-exit-gate",
         "slice-2-process-isolation",
@@ -27,7 +24,7 @@
       "slices": [3, 4, 5],
       "status": "RuntimeVerified",
       "fieldProvenBlockers": [
-        "Real-data strict audit requires connected OAuth sources on user machine"
+        "Follow-up FU-3: real-data strict audit requires connected OAuth sources on user machine"
       ],
       "evidenceIds": [
         "slice-3-exit-gate",
@@ -40,9 +37,7 @@
       "name": "Paid Agency",
       "slices": [6, 7],
       "status": "RuntimeVerified",
-      "fieldProvenBlockers": [
-        "Broad paid launch FieldProven pending installer and performance gates"
-      ],
+      "fieldProvenBlockers": [],
       "evidenceIds": [
         "slice-6-exit-gate",
         "slice-7-exit-gate",
@@ -67,7 +62,7 @@
       "slices": [9],
       "status": "AdversariallyVerified",
       "fieldProvenBlockers": [
-        "Confidential-compute marketing requires Released evidence; attestation field proof pending production workload deployment"
+        "Follow-up FU-4: confidential-compute marketing requires Released evidence; attestation field proof pending production workload"
       ],
       "evidenceIds": [
         "slice-9-exit-gate",
@@ -92,8 +87,7 @@
       "slices": [11, 12],
       "status": "AdversariallyVerified",
       "fieldProvenBlockers": [
-        "Mobile physical device acceptance deferred",
-        "Encrypted sync field proof pending multi-device acceptance"
+        "Follow-up FU-1: mobile physical device acceptance — pin release/evidence/field/mobile-acceptance.v1.json"
       ],
       "evidenceIds": [
         "slice-11-exit-gate",
@@ -108,7 +102,7 @@
       "slices": [13],
       "status": "AdversariallyVerified",
       "fieldProvenBlockers": [
-        "Shared-space field proof pending multi-member acceptance testing"
+        "Follow-up FU-5: shared-space field proof pending multi-member acceptance testing"
       ],
       "evidenceIds": [
         "slice-13-exit-gate",

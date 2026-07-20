@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "a11y-sr-signoff",
+  "screenReader": "voiceover",
+  "platform": "macos",
+  "buildId": "REPLACE_WITH_BUILD_OR_RELEASE_ID",
+  "pass": false,
+  "reviewer": "REPLACE",
+  "checks": {
+    "chatWorkflow": false,
+    "proofCenter": false,
+    "settingsNav": false,
+    "offlineProof": false,
+    "noKeyboardTraps": false
+  },
+  "notes": "Complete task-based-checklist.md on a production desktop build with VoiceOver or NVDA/JAWS, then set pass:true and all checks true. Capture: node scripts/capture-a11y-sr.js --from-checklist release/evidence/a11y/sr-signoff.checklist.template.json"
+}

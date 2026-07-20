@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Chat — Semblance</title>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to chat</a>
+  <header role="banner">
+    <h1>Semblance Chat</h1>
+    <nav aria-label="Primary">
+      <ul>
+        <li><a href="#chat" aria-current="page">Chat</a></li>
+        <li><a href="#proof">Proof</a></li>
+        <li><a href="#settings">Settings</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main id="main" role="main" aria-label="Conversation">
+    <section aria-labelledby="thread-heading">
+      <h2 id="thread-heading">Conversation</h2>
+      <div role="log" aria-live="polite" aria-relevant="additions">
+        <article aria-label="Assistant message">
+          <p>How can I help you today?</p>
+        </article>
+      </div>
+      <form aria-label="Send message">
+        <label for="chat-input">Message</label>
+        <textarea id="chat-input" name="message" rows="3"></textarea>
+        <button type="submit">Send</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

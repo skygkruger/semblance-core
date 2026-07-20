@@ -17,6 +17,7 @@ const ROOT_MODULES = join(ROOT, 'node_modules');
 const CORE_MODULES = join(ROOT, 'packages', 'core', 'node_modules');
 const TRACKED_BUNDLE = join(SIDECAR_DIR, 'bridge.cjs');
 const CHECK_ONLY = process.argv.includes('--check');
+const COPY_NATIVES_ONLY = process.argv.includes('--copy-natives-only');
 const checkDir = CHECK_ONLY
   ? mkdtempSync(join(tmpdir(), 'semblance-sidecar-check-'))
   : null;
@@ -43,6 +44,7 @@ function findModuleDir(mod) {
   return null;
 }
 
+if (!COPY_NATIVES_ONLY) {
 console.log(`[bundle-sidecar] ${CHECK_ONLY ? 'Checking' : 'Bundling'} bridge.ts → bridge.cjs...`);
 
 execSync(
@@ -93,6 +95,9 @@ if (CHECK_ONLY) {
     rmSync(checkDir, { recursive: true, force: true });
   }
   process.exit(0);
+}
+} else {
+  console.log('[bundle-sidecar] --copy-natives-only: skipping esbuild, copying native deps only');
 }
 
 console.log('[bundle-sidecar] Resolving all transitive dependencies...');

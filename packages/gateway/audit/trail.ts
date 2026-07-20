@@ -278,6 +278,28 @@ export class AuditPendingMissingError extends Error {
   }
 }
 
+export class AuditChainIntegrityError extends Error {
+  readonly brokenAt: string;
+
+  constructor(brokenAt: string) {
+    super(
+      `Audit chain integrity failure at ${brokenAt}; external dispatch denied until chain is repaired`,
+    );
+    this.name = 'AuditChainIntegrityError';
+    this.brokenAt = brokenAt;
+  }
+}
+
+/**
+ * Fail closed before any external Gateway dispatch when the audit chain is tampered.
+ */
+export function assertAuditChainIntegrityBeforeDispatch(auditTrail: AuditTrail): void {
+  const integrity = auditTrail.verifyChainIntegrity();
+  if (!integrity.valid) {
+    throw new AuditChainIntegrityError(integrity.brokenAt);
+  }
+}
+
 /**
  * Ensure a pending audit entry exists before Gateway dispatch.
  * Throws if the pending entry is missing or not in pending/request state.

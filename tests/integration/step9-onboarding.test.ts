@@ -33,10 +33,11 @@ describe('Step 9: Onboarding Flow Updates', () => {
     expect(content).toContain('InitializeStep');
   });
 
-  it('has hardware detection step with detectHardware IPC call', () => {
-    expect(content).toContain("step === 'hardware'");
-    expect(content).toContain('detectHardware');
-  });
+    it('has hardware detection step with detectHardware IPC call', () => {
+      expect(content).toContain("step === 'hardware'");
+      expect(content).toContain('detectHardware');
+      expect(content).toContain('getRecommendedModelsForTier');
+    });
 
   it('has initialize step with model downloads', () => {
     expect(content).toContain("step === 'initialize'");

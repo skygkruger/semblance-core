@@ -169,9 +169,9 @@ export function WorkScreen() {
             >
               Work
             </h1>
-            <ShimmerDescription>
-              Delegated plans, proposed actions, and completed work with audit correlation and proof receipts.
-            </ShimmerDescription>
+            <ShimmerDescription
+              text="Delegated plans, proposed actions, and completed work with audit correlation and proof receipts."
+            />
           </GhostSprite>
         </ContentBracket>
 

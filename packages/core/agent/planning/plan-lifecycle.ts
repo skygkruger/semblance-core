@@ -340,34 +340,38 @@ export function syncPlanWithActionLifecycle(
     const mappedStatus = mapActionStateToStepStatus(record.state);
 
     if (mappedStatus === 'completed') {
-      return {
+      const next: PlanStep = {
         ...step,
         status: 'completed',
         failure: undefined,
         outcome: step.outcome ?? buildOutcomeFromAction(record),
       };
+      return next;
     }
 
     if (mappedStatus === 'failed') {
-      return {
+      const next: PlanStep = {
         ...step,
         status: 'failed',
         failure: step.failure ?? buildFailureFromAction(record),
       };
+      return next;
     }
 
     if (mappedStatus === 'blocked') {
-      return {
+      const next: PlanStep = {
         ...step,
         status: 'blocked',
         failure: step.failure ?? buildFailureFromAction(record),
       };
+      return next;
     }
 
-    return {
+    const next: PlanStep = {
       ...step,
       status: 'in_progress',
     };
+    return next;
   });
 
   return updateDelegatedPlan(plan, { steps });
@@ -378,7 +382,7 @@ function findActionByRequestId(
   requestId: string,
 ): ActionRecord | null {
   const records = store.listRecords(500, 0);
-  return records.find((record) => record.requestId === requestId) ?? null;
+  return records.find((record: ActionRecord) => record.requestId === requestId) ?? null;
 }
 
 export function enrichPlanView(

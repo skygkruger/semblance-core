@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://semblance.run/schemas/field-evidence/mobile-acceptance.v1.schema.json",
+  "title": "Mobile physical device acceptance evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "evidenceId",
+    "capturedAt",
+    "devices",
+    "pass"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "evidenceId": { "const": "mobile-device-acceptance" },
+    "capturedAt": { "type": "string", "format": "date-time" },
+    "releaseId": { "type": "string", "minLength": 1 },
+    "protocolVersion": { "type": "string", "minLength": 1 },
+    "pass": { "type": "boolean" },
+    "devices": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["platform", "model", "checks"],
+        "properties": {
+          "platform": { "enum": ["ios", "android"] },
+          "model": { "type": "string", "minLength": 1 },
+          "osVersion": { "type": "string" },
+          "checks": {
+            "type": "object",
+            "required": ["localInference", "sync", "routing", "proofOffline"],
+            "properties": {
+              "localInference": { "type": "boolean" },
+              "sync": { "type": "boolean" },
+              "routing": { "type": "boolean" },
+              "proofOffline": { "type": "boolean" }
+            }
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

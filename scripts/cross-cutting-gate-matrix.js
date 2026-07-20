@@ -49,6 +49,7 @@ const WRITE_EVIDENCE = process.argv.includes('--write-evidence');
  * @property {boolean} runnable
  * @property {string} [command]
  * @property {string} [deferredBlocker]
+ * @property {boolean} [deferredOnMissing]
  * @property {number} [timeoutMs]
  */
 
@@ -176,16 +177,18 @@ const GATES = [
     name: 'Outage safety',
     passCriterion: 'Local reads and inference remain available during disconnect',
     repo: 'core',
-    runnable: false,
-    deferredBlocker: 'No automated disconnect-commerce/cloud/connectors outage suite checked in; requires dedicated adversarial harness',
+    runnable: true,
+    command: 'npx vitest run tests/adversarial/outage-safety.test.ts',
+    timeoutMs: 120000,
   },
   {
     id: 'corruption-safety',
     name: 'Corruption safety',
     passCriterion: 'External effects fail closed; safe local recovery path appears',
     repo: 'core',
-    runnable: false,
-    deferredBlocker: 'No automated tamper policy/audit/key-state corruption suite checked in',
+    runnable: true,
+    command: 'npx vitest run tests/adversarial/corruption-safety.test.ts',
+    timeoutMs: 120000,
   },
   {
     id: 'dr-paid-runtime',
@@ -255,48 +258,60 @@ const GATES = [
     name: 'Mobile physical device acceptance',
     passCriterion: 'Local inference/sync/routing/proof pass on device',
     repo: 'core',
-    runnable: false,
-    deferredBlocker: 'Requires physical iOS/Android hardware and manual acceptance protocol',
+    runnable: true,
+    deferredOnMissing: true,
+    command: 'node scripts/verify-field-evidence.js --mobile-acceptance',
+    timeoutMs: 30000,
+    deferredBlocker: 'Follow-up FU-1: pin mobile-acceptance.v1.json from physical iOS+Android (see program-status.md)',
   },
   {
     id: 'accessibility',
     name: 'Accessibility automated + task-based',
     passCriterion: 'No serious/critical WCAG findings; keyboard/screen-reader workflows complete',
     repo: 'core',
-    runnable: false,
-    deferredBlocker: 'No stable axe/playwright accessibility gate in CI; task-based review pending',
+    runnable: true,
+    command: 'node scripts/a11y-gate.js',
+    timeoutMs: 120000,
   },
   {
     id: 'performance-launch-floor',
     name: 'Performance Windows launch-floor',
     passCriterion: 'Ready ≤90s on Windows 11 23H2+ 4c/16GB/20GB free',
     repo: 'core',
-    runnable: false,
-    deferredBlocker: 'Requires Windows 11 23H2+ physical or VM benchmark harness',
+    runnable: true,
+    deferredOnMissing: true,
+    command: 'node scripts/verify-field-evidence.js --launch-floor',
+    timeoutMs: 30000,
+    deferredBlocker: 'Pinned Windows launch-floor benchmark evidence not yet captured',
   },
   {
     id: 'installer-three-vms',
     name: 'Installer three clean VMs',
     passCriterion: '3/3 install/update/rollback/uninstall on launch-floor VMs',
     repo: 'core',
-    runnable: false,
-    deferredBlocker: 'Requires three clean Windows VMs and scripted install-verify pipeline',
+    runnable: true,
+    deferredOnMissing: true,
+    command: 'node scripts/verify-field-evidence.js --installer-matrix',
+    timeoutMs: 30000,
+    deferredBlocker: 'Pinned three-VM installer matrix evidence not yet captured',
   },
   {
     id: 'supply-chain',
     name: 'Supply chain SBOM/provenance',
     passCriterion: 'Every shipped artifact pinned/signed; dependency licenses represented',
     repo: 'core',
-    runnable: false,
-    deferredBlocker: 'No automated SBOM/provenance/license report gate checked in for all shipped artifacts',
+    runnable: true,
+    command: 'node scripts/supply-chain-gate.js',
+    timeoutMs: 180000,
   },
   {
     id: 'diagnostic-privacy',
     name: 'Diagnostic privacy bundle',
     passCriterion: 'No automatic upload; secrets excluded; explicit share only',
     repo: 'core',
-    runnable: false,
-    deferredBlocker: 'No automated diagnostic bundle generate/preview/redact/cancel/share gate checked in',
+    runnable: true,
+    command: 'npx vitest run tests/adversarial/diagnostic-privacy.test.ts',
+    timeoutMs: 120000,
   },
   {
     id: 'commercial-records',
@@ -369,6 +384,15 @@ const GATES = [
     runnable: true,
     command: 'node scripts/check-stop-conditions.js',
     timeoutMs: 180000,
+  },
+  {
+    id: 'multi-model-architecture',
+    name: 'Multi-model architecture audit',
+    passCriterion: 'Installer runtimes bundled; onboarding recommend+download; auto-load; Settings select; BitNet gated',
+    repo: 'core',
+    runnable: true,
+    command: 'node scripts/audit-multi-model.js',
+    timeoutMs: 120000,
   },
   {
     id: 'sidecar-smoke',
@@ -497,6 +521,21 @@ function runGate(gate) {
   if (gate.command === '__secrets_scan__') result = runSecretsScan();
   else if (gate.command === '__sidecar_smoke__') result = runSidecarSmoke();
   else result = runShellCommand(gate);
+
+  if (!result.ok && gate.deferredOnMissing && result.exitCode === 2) {
+    return {
+      id: gate.id,
+      name: gate.name,
+      passCriterion: gate.passCriterion,
+      repo: gate.repo,
+      status: /** @type {GateStatus} */ ('DeferredFieldProof'),
+      exitCode: result.exitCode,
+      command: gate.command,
+      blocker: gate.deferredBlocker ?? 'Field evidence file missing',
+      excerpt: excerpt(result.output),
+      ranAt: new Date().toISOString(),
+    };
+  }
 
   return {
     id: gate.id,
