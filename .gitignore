@@ -155,6 +155,7 @@ scripts/**/*.d.ts.map
 !scripts/aggregate-installer-matrix.js
 !scripts/capture-mobile-acceptance.js
 !scripts/capture-a11y-sr.js
+!scripts/build-desktop-macos-phase1.js
 !scripts/run-task-based-a11y.js
 
 # Vitest config compiled output

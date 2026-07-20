@@ -153,16 +153,17 @@ export function TodayScreen() {
         {snapshot.isEmpty ? (
           <Card>
             <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-              <GhostSprite size={48} />
-              <div>
-                <p style={{ margin: 0, color: COLORS.text, fontSize: 15 }}>
-                  Nothing queued yet today.
-                </p>
-                <p style={{ margin: '8px 0 0', color: COLORS.silver, fontSize: 13, lineHeight: 1.5 }}>
-                  Connect services in Settings → Connections, index files, or let Semblance act on your behalf.
-                  This surface only shows real local data — no demo rows.
-                </p>
-              </div>
+              <GhostSprite>
+                <div>
+                  <p style={{ margin: 0, color: COLORS.text, fontSize: 15 }}>
+                    Nothing queued yet today.
+                  </p>
+                  <p style={{ margin: '8px 0 0', color: COLORS.silver, fontSize: 13, lineHeight: 1.5 }}>
+                    Connect services in Settings → Connections, index files, or let Semblance act on your behalf.
+                    This surface only shows real local data — no demo rows.
+                  </p>
+                </div>
+              </GhostSprite>
             </div>
           </Card>
         ) : null}

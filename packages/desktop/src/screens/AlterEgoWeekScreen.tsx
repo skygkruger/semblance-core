@@ -15,7 +15,6 @@ import { PageContainer } from '../components/PageContainer';
 import { FeatureStatusBanner } from '../components/FeatureStatusBanner';
 import { ShimmerDescription } from '../components/ShimmerDescription';
 import { sidecarCall } from '../ipc/commands';
-import { useLicense } from '../contexts/LicenseContext';
 import { AlterEgoWeekCard } from '../components/AlterEgoWeekCard';
 import type { AlterEgoWeekProgress, AlterEgoWeekDay } from '../components/AlterEgoWeekCard';
 import { AlterEgoActivationCard } from '../components/AlterEgoActivationCard';

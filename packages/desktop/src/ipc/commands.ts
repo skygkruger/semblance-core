@@ -1602,11 +1602,11 @@ export function getDelegatedPlan(planId: string): Promise<DelegatedPlanView> {
 }
 
 export function createDelegatedPlan(input: CreateDelegatedPlanInput): Promise<DelegatedPlanView> {
-  return sidecarCall<DelegatedPlanView>('plans:create', input);
+  return sidecarCall<DelegatedPlanView>('plans:create', { ...input } as Record<string, unknown>);
 }
 
 export function updateDelegatedPlan(input: UpdateDelegatedPlanInput): Promise<DelegatedPlanView> {
-  return sidecarCall<DelegatedPlanView>('plans:update', input);
+  return sidecarCall<DelegatedPlanView>('plans:update', { ...input } as Record<string, unknown>);
 }
 
 // ─── Cloud Bridge ──────────────────────────────────────────────────────────

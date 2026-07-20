@@ -16,8 +16,12 @@
     "noEmit": true,
     "baseUrl": "..",
     "paths": {
+      "@semblance/kernel": ["kernel/src/index.ts"],
+      "@semblance/kernel/*": ["kernel/src/*"],
       "@semblance/sync": ["sync/src/index.ts"],
-      "@semblance/sync/*": ["sync/src/*"]
+      "@semblance/sync/*": ["sync/src/*"],
+      "@semblance/protocol": ["protocol/src/index.ts"],
+      "@semblance/protocol/*": ["protocol/src/*"]
     }
   },
   "include": ["llm/**/*.ts", "knowledge/**/*.ts", "agent/**/*.ts", "types/**/*.ts", "extensions/**/*.ts", "skills/**/*.ts", "security/**/*.ts", "credentials/**/*.ts", "index.ts"],
