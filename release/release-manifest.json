@@ -903,7 +903,7 @@
       "id": "cross-cutting-release-trains",
       "repository": "core",
       "path": "release/evidence/cross-cutting/release-trains.v1.json",
-      "sha256": "ac24486abfde5771b42ae3e0c9734e50b1336999106ac68f2df322ecbba2c181",
+      "sha256": "e15e91be673d8835bed5ac8b6a8408a45328c96050e965876b6383bd9a5881da",
       "requiredForStates": [
         "RuntimeVerified"
       ]
@@ -912,7 +912,7 @@
       "id": "cross-cutting-program-status",
       "repository": "core",
       "path": "release/evidence/cross-cutting/program-status.md",
-      "sha256": "c17bc0eacaec90e606f32d76416f8e8562a225dd8ea43354b126de8ee6d263fb",
+      "sha256": "331bbf62bfc9480005d9a51df030fbfd0918f82dc22fd47673e542c69e075fa7",
       "requiredForStates": [
         "RuntimeVerified"
       ]

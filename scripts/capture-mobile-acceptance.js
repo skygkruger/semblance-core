@@ -105,6 +105,9 @@ function normalizeEvidence(input) {
 function allChecksTrue(evidence) {
   if (!evidence.pass) return ['pass must be true'];
   const errors = [];
+  const platforms = new Set((evidence.devices ?? []).map((d) => d.platform));
+  if (!platforms.has('ios')) errors.push('at least one physical iOS device is required');
+  if (!platforms.has('android')) errors.push('at least one physical Android device is required');
   for (const device of evidence.devices) {
     for (const key of CHECK_KEYS) {
       if (device.checks?.[key] !== true) {

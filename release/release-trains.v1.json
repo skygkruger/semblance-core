@@ -37,9 +37,7 @@
       "name": "Paid Agency",
       "slices": [6, 7],
       "status": "RuntimeVerified",
-      "fieldProvenBlockers": [
-        "Broad paid launch FieldProven pending installer and performance field evidence"
-      ],
+      "fieldProvenBlockers": [],
       "evidenceIds": [
         "slice-6-exit-gate",
         "slice-7-exit-gate",

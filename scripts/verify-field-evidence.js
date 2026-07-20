@@ -84,10 +84,19 @@ function semanticChecks(mode, data) {
   }
   if (mode === 'mobile-acceptance') {
     if (data.pass !== true) errors.push('mobile acceptance pass must be true');
+    const platforms = new Set((data.devices ?? []).map((d) => d.platform));
+    if (!platforms.has('ios')) {
+      errors.push('MOBILE_DEVICE_ACCEPTANCE.md requires at least one physical iOS device');
+    }
+    if (!platforms.has('android')) {
+      errors.push('MOBILE_DEVICE_ACCEPTANCE.md requires at least one physical Android device');
+    }
     for (const device of data.devices ?? []) {
       const checks = device.checks ?? {};
-      for (const [key, value] of Object.entries(checks)) {
-        if (value !== true) errors.push(`${device.platform}/${device.model}: ${key} not true`);
+      for (const key of ['localInference', 'sync', 'routing', 'proofOffline']) {
+        if (checks[key] !== true) {
+          errors.push(`${device.platform}/${device.model}: ${key} not true`);
+        }
       }
     }
   }

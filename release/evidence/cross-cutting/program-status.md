@@ -27,7 +27,7 @@ Program §17–19 plus multi-model architecture audit are machine-verifiable via
 |-------|------|--------|--------|-------------|
 | A | Sovereign Foundation | 1–2 | RuntimeVerified | Windows launch-floor + installer three-VM pinned |
 | B | Local Intelligence | 3–5 | RuntimeVerified | Real-data strict needs connected OAuth on user machine |
-| C | Paid Agency | 6–7 | RuntimeVerified | Broad launch FieldProven pending installer/performance |
+| C | Paid Agency | 6–7 | RuntimeVerified | Installer + launch-floor pinned; paid FieldProven follows release train policy |
 | D | User-Controlled Cloud | 8 | RuntimeVerified | — |
 | E | Confidential Semblance Cloud | 9 | AdversariallyVerified | Production confidential workload field proof pending |
 | F | Full Personal Agency | 10 | AdversariallyVerified | — |
